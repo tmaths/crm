@@ -11,6 +11,7 @@ urlpatterns = [
         auth_views.LoginView.as_view(
             template_name='accounts/login.html',
             redirect_authenticated_user=True,
+            success_url='/dashboard/',
         ),
         name='login'
     ),
@@ -22,5 +23,5 @@ urlpatterns = [
         ),
         name='logout'
     ),
-] 
+]
 

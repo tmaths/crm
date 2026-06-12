@@ -1,0 +1,25 @@
+{% extends 'bulkrep/base.html' %}
+
+{% block title %}Report Ready - Download{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh; background: #f7f9fb;">
+    <div class="card shadow-sm border-0 text-center" style="max-width: 480px; width: 100%; border-radius: 18px;">
+        <div class="card-body p-5">
+            <div class="mb-4">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 mb-3" style="width:64px;height:64px;">
+                    <i class="fa-solid fa-check fa-2x text-success"></i>
+                </span>
+                <h2 class="fw-bold mb-2">Report Ready!</h2>
+                <p class="mb-4 text-muted">Your report has been generated successfully. Click below to download.</p>
+            </div>
+            <a href="{{ download_url }}" class="btn btn-success btn-lg w-100 mb-3">
+                <i class="fa-solid fa-download me-2"></i>Download Report
+            </a>
+            <a href="{% url 'bulkrep:home' %}" class="btn btn-outline-secondary w-100">
+                <i class="fa-solid fa-arrow-left me-2"></i>Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

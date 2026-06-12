@@ -1,0 +1,3318 @@
+{% extends 'bulkrep/base.html' %} {% load static %} {% block title %} Dashboard
+{% endblock %} {% block extra_css %}
+<style>
+  .dashboard-container {
+    padding: 20px;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+  }
+
+  .dashboard-header {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .metric-card {
+    background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
+    color: #333;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .metric-card h3 {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .metric-card.top-subscriber h3 {
+    font-size: 1.4rem;
+  }
+
+  .metric-card p {
+    font-size: 0.85rem;
+    margin: 0;
+    opacity: 0.9;
+    line-height: 1.2;
+  }
+
+  .metric-card-tall {
+    height: 100%; /* Fill parent height */
+    margin-bottom: 20px; /* Match regular card margin */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .metric-card-tall h3 {
+    font-size: 2.5rem; /* Larger for emphasis */
+  }
+
+  .metric-card-tall p {
+    font-size: 1rem;
+  }
+
+
+
+  .chart-container {
+    background: white;
+    border-radius: 15px;
+    padding: 25px 25px 50px 25px; /* Increased bottom padding for x-axis labels */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 35px; /* Increased margin to prevent overlap */
+    min-height: 480px; /* Use min-height instead of fixed height */
+    overflow: visible; /* Allow content to flow properly */
+    position: relative; /* For proper positioning */
+  }
+
+  .chart-container canvas {
+    max-height: 380px; /* Increased canvas height */
+    width: 100% !important;
+    height: auto !important;
+  }
+
+
+  .chart-container h5 {
+    color: #333;
+    margin-bottom: 25px; /* Increased spacing */
+    font-weight: 600;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f8f9fa; /* Visual separation */
+  }
+
+  .dashboard-header {
+    background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
+    color: #333;
+    padding: 40px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .dashboard-header h1 {
+    margin: 0;
+    font-size: 2.8rem;
+    font-weight: 300;
+  }
+
+  .dashboard-header p {
+    margin: 15px 0 0 0;
+    font-size: 1.2rem;
+    opacity: 0.9;
+  }
+
+  .controls-section {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .loading-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: auto;
+    height: auto;
+    padding: 20px 30px;
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.35) 0%,
+      rgba(118, 75, 162, 0.35) 100%
+    );
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    font-size: 1rem;
+    color: #667eea;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(5px);
+  }
+
+  .loading-overlay.hidden {
+    display: none;
+  }
+
+  .btn-refresh {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-refresh:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    color: white;
+  }
+
+  .btn-refresh:disabled {
+    background: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .btn-outline-secondary {
+    background: transparent;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .btn-outline-secondary:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+    color: #495057;
+  }
+
+  .time-range-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    padding: 10px 15px;
+  }
+
+  .time-range-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
+
+  @media (max-width: 768px) {
+    .dashboard-container {
+      padding: 10px;
+    }
+
+    .dashboard-header {
+      padding: 20px;
+    }
+
+    .dashboard-header h1 {
+      font-size: 2.2rem;
+    }
+
+    .chart-container {
+      height: 350px;
+      padding: 20px 15px 35px 15px;
+      margin-bottom: 25px;
+    }
+
+    .chart-container canvas {
+      max-height: 250px;
+    }
+
+    .metric-card {
+      padding: 20px;
+    }
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="text-center">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="mt-2">Loading dashboard data...</div>
+  </div>
+</div>
+
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>{{ title }}</h1>
+    <p>Real-time analytics and insights for subscriber usage patterns</p>
+  </div>
+
+  <div class="controls-section">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <div class="d-flex gap-3 align-items-center flex-wrap">
+          <label class="form-label mb-0 fw-bold">Date Range:</label>
+
+          <select id="datePreset" class="form-select" style="width: 200px">
+            <option value="custom">Custom Range</option>
+            <option value="alltime">All Time</option>
+          </select>
+
+          <div class="d-flex gap-2 align-items-center" id="customDateInputs">
+            <div class="input-group" style="width: 150px">
+              <input type="date" id="startDate" class="form-control" />
+              <span class="input-group-text"
+                ><i class="fas fa-calendar"></i
+              ></span>
+            </div>
+            <span class="text-muted">to</span>
+            <div class="input-group" style="width: 150px">
+              <input type="date" id="endDate" class="form-control" />
+              <span class="input-group-text"
+                ><i class="fas fa-calendar"></i
+              ></span>
+            </div>
+          </div>
+
+          <button id="applyBtn" class="btn btn-refresh" disabled>
+            <i class="fas fa-check me-1"></i> Apply Changes
+          </button>
+          <button id="refreshBtn" class="btn btn-outline-secondary">
+            <i class="fas fa-sync-alt me-1"></i> Refresh
+          </button>
+        </div>
+
+        <div class="mt-2">
+          <small class="text-info">
+            <i class="fas fa-info-circle me-1"></i>
+            Showing data from <span id="currentDateRange">-</span>
+          </small>
+        </div>
+      </div>
+      <div class="col-md-4 text-end">
+        <small class="text-muted"
+          >Last updated: <span id="lastUpdated">-</span></small
+        >
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="controls-section">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <div class="d-flex gap-3 align-items-center">
+              <div>
+                <label for="globalSubscriberFilter" class="form-label mb-1"
+                  >Filter by Subscriber:</label
+                >
+                <div class="d-flex gap-2 align-items-end">
+                  <select id="globalSubscriberFilter" class="form-select">
+                    {% if user.is_superuser %}
+                    <option value="all">All Subscribers</option>
+                    {% else %}
+                    <option value="all">My Subscribers</option>
+                    {% endif %}
+                  </select>
+                  <button id="applySubscriberFilterBtn" class="btn btn-primary">
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 text-end">
+            <button id="resetFiltersBtn" class="btn btn-outline-secondary">
+              <i class="fas fa-undo me-1"></i> Reset Filters
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4" style="display: flex; align-items: stretch;">
+    <!-- Left Column: Tall Total Usage Card -->
+    <div class="col-lg-3 col-md-12" style="display: flex;">
+      <div class="metric-card metric-card-tall" style="width: 100%;">
+        <h3 id="totalUsage">-</h3>
+        <p><i class="fas fa-chart-bar me-1"></i>Total Usage Entries</p>
+      </div>
+    </div>
+
+    <!-- Right Columns: 6 cards in 2 rows of 3 -->
+    <div class="col-lg-9 col-md-12">
+      <!-- First Row -->
+      <div class="row mb-3">
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card">
+            <h3>
+              <span id="totalSubscribers">-</span>
+              <span style="font-size: 1.2rem; margin: 0 8px; opacity: 0.7">|</span>
+              <span id="activeSubscribers">-</span>
+              <small style="font-size: 0.9rem; opacity: 0.85"> Active</small>
+            </h3>
+            <p><i class="fas fa-users me-1"></i>Total Subscribers | Active in Period</p>
+          </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card top-subscriber" style="cursor: pointer;" onclick="filterByTopSubscriber()" title="Click to filter by this subscriber">
+            <h3 id="topSubscriber">-</h3>
+            <p><i class="fas fa-crown me-1"></i>Top Subscriber <i class="fas fa-filter ms-1" style="font-size: 0.7rem; opacity: 0.6;"></i></p>
+          </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card">
+            <h3 id="retentionRate">-</h3>
+            <p><i class="fas fa-heart me-1"></i>Retention Rate</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second Row -->
+      <div class="row mb-3">
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card">
+            <h3 id="engagementRate">-</h3>
+            <p><i class="fas fa-user-check me-1"></i>Engagement Rate</p>
+          </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card top-subscriber">
+            <h3 id="highestProductByTransaction">-</h3>
+            <p>
+              <i class="fas fa-shopping-cart me-1"></i>Highest Product by
+              Transaction
+            </p>
+          </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card" id="dailyComparisonCard">
+            <h3>
+              <span id="yesterdayUsage">-</span>
+              <small style="font-size: 1rem">yesterday</small>
+              <span style="font-size: 1.2rem; margin: 0 8px">/</span>
+              <span id="prevMonthSameDayUsage">-</span>
+              <small style="font-size: 1rem">last month</small>
+            </h3>
+            <p>
+              <i class="fas fa-calendar-day me-1"></i>
+              <span id="dailyComparisonLabel"
+                >Yesterday's Usage vs. Same Day Last Month</span
+              >
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Third Row - Comparison Metrics with Percentages -->
+      <div class="row">
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card" id="weekComparisonCard">
+            <h3>
+              <span id="weekCurrentCount">-</span>
+              <span style="font-size: 1rem; opacity: 0.7"> this week</span>
+              <span id="weekPercentageChange" class="ms-2" style="font-size: 1rem;"></span>
+            </h3>
+            <p>
+              <i class="fas fa-calendar-week me-1"></i>
+              Week vs Week
+              <small class="d-block mt-1" id="weekComparisonDetails" style="opacity: 0.7; font-size: 0.8rem;"></small>
+            </p>
+          </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card" id="monthComparisonCard">
+            <h3>
+              <span id="monthCurrentCount">-</span>
+              <span style="font-size: 1rem; opacity: 0.7"> this month</span>
+              <span id="monthPercentageChange" class="ms-2" style="font-size: 1rem;"></span>
+            </h3>
+            <p>
+              <i class="fas fa-calendar-alt me-1"></i>
+              Month vs Month
+              <small class="d-block mt-1" id="monthComparisonDetails" style="opacity: 0.7; font-size: 0.8rem;"></small>
+            </p>
+          </div>
+        </div>
+
+        <!-- COMMENTED OUT - Not needed for now
+        <div class="col-lg-4 col-md-6">
+          <div class="metric-card" id="sameDayComparisonCard">
+            <h3>
+              <span id="sameDayCurrentCount">-</span>
+              <span style="font-size: 1rem; opacity: 0.7"> today</span>
+              <span id="sameDayPercentageChange" class="ms-2" style="font-size: 1rem;"></span>
+            </h3>
+            <p>
+              <i class="fas fa-exchange-alt me-1"></i>
+              Today vs Same Day Last Month
+              <small class="d-block mt-1" id="sameDayComparisonDetails" style="opacity: 0.7; font-size: 0.8rem;"></small>
+            </p>
+          </div>
+        </div>
+        -->
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="chart-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-chart-line me-2"></i>Usage Trends Over Time</h5>
+          <div class="d-flex gap-2 align-items-center">
+            <select
+              id="usageTrendsTimeFilter"
+              class="form-select form-select-sm"
+              style="width: 150px"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            <button
+              id="downloadUsageTrendsBtn"
+              class="btn btn-outline-secondary btn-sm"
+              title="Download CSV"
+              style="border: none; background: none; color: #6c757d"
+            >
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+        </div>
+        <div id="usageTrendsCurrentPeriod" class="mt-1" style="display: none;">
+          <small class="text-info">
+            <i class="fas fa-info-circle me-1"></i>
+            Current period: <span id="usageTrendsCurrentPeriodText"></span>
+          </small>
+        </div>
+        
+        <div id="usageTrendsDateRange" class="mt-2" style="display: none;">
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0 me-1" style="font-size: 0.875rem"
+              >Date range:</label
+            >
+            <input
+              type="date"
+              id="usageTrendsStartDate"
+              class="form-control form-control-sm"
+              style="width: 130px"
+            />
+            <span class="text-muted">to</span>
+            <input
+              type="date"
+              id="usageTrendsEndDate"
+              class="form-control form-control-sm"
+              style="width: 130px"
+            />
+            <button
+              id="applyUsageTrendsDateRange"
+              class="btn btn-primary btn-sm"
+            >
+              Apply
+            </button>
+          </div>
+          <div id="appliedUsageTrendsDateRange" class="mt-2" style="display: none;">
+            <small class="text-muted">
+              <i class="fas fa-calendar-alt me-1"></i>
+              Showing data for: <span id="appliedUsageTrendsDateRangeText"></span>
+            </small>
+          </div>
+        </div>
+        <canvas id="usageTrendsChart"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="chart-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-trophy me-2"></i>Top Products</h5>
+          <div class="d-flex gap-2">
+            <select
+              id="topProductsFilter"
+              class="form-select form-select-sm"
+              style="width: 120px"
+            >
+              <option value="all">All Products</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="topProductsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-calendar-alt me-2"></i>3-Month Rolling Usage</h5>
+          <div class="d-flex gap-2">
+            <button
+              id="load3MonthBtn"
+              class="btn btn-primary btn-sm"
+              onclick="loadThreeMonthData()"
+            >
+              <i class="fas fa-chart-line me-1"></i>Load 3-Month View
+            </button>
+            <button
+              id="refresh3MonthBtn"
+              class="btn btn-outline-secondary btn-sm"
+              onclick="refreshThreeMonthData()"
+              style="display: none;"
+              title="Refresh 3-Month Data"
+            >
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+        </div>
+        <div id="threeMonthChartContainer" style="display: none">
+          <canvas id="threeMonthUsageChart"></canvas>
+        </div>
+        <div id="threeMonthPlaceholder" class="text-center text-muted py-5">
+          <i class="fas fa-chart-line fa-3x"></i>
+          <p>
+            Click "Load 3-Month View" to see the 3-month rolling usage chart
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5>
+            <i class="fas fa-user-friends me-2"></i>Top Subscribers by Usage
+          </h5>
+          <div class="d-flex gap-2">
+            
+            <button id="downloadTopSubscribersBtn" class="btn btn-outline-secondary btn-sm" title="Download as CSV">
+              <i class="fas fa-download"></i>
+            </button>
+            <select
+              id="topSubscribersFilter"
+              class="form-select form-select-sm"
+              style="width: 140px"
+            >
+              <option value="all">All Subscribers</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="topSubscribersChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-user-plus me-2"></i>New Subscribers Trend</h5>
+          <div class="d-flex gap-2 align-items-center">
+            <select
+              id="newSubscribersTimeFilter"
+              class="form-select form-select-sm"
+              style="width: 150px"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="180">Last 6 months</option>
+              <option value="365">Last year</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            <button
+              id="downloadNewSubscribersBtn"
+              class="btn btn-outline-secondary btn-sm"
+              title="Download CSV"
+              style="border: none; background: none; color: #6c757d"
+            >
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+        </div>
+        <div id="newSubscribersCurrentPeriod" class="mt-1" style="display: none;">
+          <small class="text-info">
+            <i class="fas fa-info-circle me-1"></i>
+            Current period: <span id="newSubscribersCurrentPeriodText"></span>
+          </small>
+        </div>
+        
+        <div id="newSubscribersDateRange" class="mt-2" style="display: none;">
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0 me-1" style="font-size: 0.875rem"
+              >Date range:</label
+            >
+            <input
+              type="date"
+              id="newSubscribersStartDate"
+              class="form-control form-control-sm"
+              style="width: 130px"
+            />
+            <span class="text-muted">to</span>
+            <input
+              type="date"
+              id="newSubscribersEndDate"
+              class="form-control form-control-sm"
+              style="width: 130px"
+            />
+            <button
+              id="applyNewSubscribersDateRange"
+              class="btn btn-primary btn-sm"
+            >
+              Apply
+            </button>
+          </div>
+          <div id="appliedNewSubscribersDateRange" class="mt-2" style="display: none;">
+            <small class="text-muted">
+              <i class="fas fa-calendar-alt me-1"></i>
+              Showing data for: <span id="appliedDateRangeText"></span>
+            </small>
+          </div>
+        </div>
+        <canvas id="newSubscribersChart"></canvas>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-user-times me-2"></i>Churn Analysis</h5>
+          <button
+            id="downloadChurnedBtn"
+            class="btn btn-outline-secondary btn-sm"
+            title="Download CSV"
+            style="border: none; background: none; color: #6c757d"
+          >
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+
+        <div class="">
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <label class="form-label mb-0 me-1" style="font-size: 0.875rem"
+              >Date range:</label
+            >
+            <input
+              type="date"
+              id="churnStartDate"
+              class="form-control form-control-sm"
+              style="width: 130px"
+            />
+            <span class="mx-1">to</span>
+            <input
+              type="date"
+              id="churnEndDate"
+              class="form-control form-control-sm"
+              style="width: 130px"
+            />
+            <button
+              id="applyChurnFilter"
+              class="btn btn-primary btn-sm"
+              style="font-size: 0.75rem; padding: 0.25rem 0.5rem"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+
+        <div class="row text-center">
+          <div class="col-4">
+            <div class="p-2">
+              <h5 id="churnRate" class="text-danger mb-1">-</h5>
+              <small class="text-muted">Churn Rate</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2">
+              <h5 id="churnedCount" class="text-warning mb-1">-</h5>
+              <small class="text-muted">Churned Users</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="p-2">
+              <h5 id="activeCount" class="text-success mb-1">-</h5>
+              <small class="text-muted">Active Users</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- <div class="">
+          <div class="card">
+            <div class="card-header py-2">
+              <h6 class="mb-0">Churn Trend</h6>
+            </div>
+            <div class="card-body p-2" style="height: 240px">
+              <canvas id="churnTrendChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div> -->
+
+  <!-- <div class="row mb-4">
+    <div class="col-lg-6">
+      <div class="chart-container">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5><i class="fas fa-money-bill-wave me-2"></i>Revenue by Product</h5>
+          <div class="d-flex gap-2">
+            <select
+              id="revenueProductFilter"
+              class="form-select form-select-sm"
+              style="width: 120px"
+            >
+              <option value="all">All Products</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+  </div> -->
+
+  <!-- {% comment %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+        </div>
+        <div class="card-body p-3">
+          <a
+            href="{% url 'bulkrep:bulk_report' %}"
+            class="btn btn-primary btn-sm me-2"
+          >
+            <i class="fas fa-file-alt me-1"></i> Generate Bulk Report
+          </a>
+          <a
+            href="{% url 'bulkrep:single_report' %}"
+            class="btn btn-secondary btn-sm me-2"
+          >
+            <i class="fas fa-file me-1"></i> Generate Single Report
+          </a>
+          <a href="{% url 'admin:index' %}" class="btn btn-info btn-sm">
+            <i class="fas fa-cog me-1"></i> Admin Panel
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endcomment %} -->
+</div>
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  class DashboardManager {
+    constructor() {
+      this.charts = {};
+      this.isDataLoaded = false;
+      this.appliedSubscriberFilter = "all"; // Initialize with default value
+      this.subscriberFilterMode = "all"; // Track the filter mode separately
+      this.init();
+    }
+
+    init() {
+      this.initializeDateInputs();
+      this.setupEventListeners();
+      this.manageButtonStates();
+      // Auto-load dashboard data on initialization
+      this.loadData();
+      // Auto-refresh every 24 hours (daily) - only if data is loaded
+      setInterval(() => {
+        if (this.isDataLoaded) {
+          this.loadData();
+        }
+      }, 86400000);
+    }
+
+    setupEventListeners() {
+      document
+        .getElementById("datePreset")
+        .addEventListener("change", () => this.handleDatePresetChange());
+      document
+        .getElementById("startDate")
+        .addEventListener("change", () => this.handleCustomDateChange());
+      document
+        .getElementById("endDate")
+        .addEventListener("change", () => this.handleCustomDateChange());
+      // Load Dashboard button removed - dashboard auto-loads on initialization
+      document
+        .getElementById("applyBtn")
+        .addEventListener("click", () => this.applyDateChanges());
+      document
+        .getElementById("refreshBtn")
+        .addEventListener("click", () => this.loadData());
+
+      // Individual chart filter listeners
+      document
+        .getElementById("usageTrendsTimeFilter")
+        .addEventListener("change", () => this.updateUsageTrendsChart());
+      document
+        .getElementById("topProductsFilter")
+        .addEventListener("change", () => this.updateTopProductsChart());
+      document
+        .getElementById("topSubscribersFilter")
+        .addEventListener("change", () => this.updateTopSubscribersChart());
+      // document
+      //   .getElementById("revenueProductFilter")
+      //   .addEventListener("change", () => this.updateRevenueChart());
+      document
+        .getElementById("newSubscribersTimeFilter")
+        .addEventListener("change", () => this.updateNewSubscribersChart());
+      document
+        .getElementById("applyChurnFilter")
+        .addEventListener("click", () => this.updateChurnAnalysis());
+      document
+        .getElementById("churnStartDate")
+        .addEventListener("change", () => this.validateChurnDateRange());
+      document
+        .getElementById("churnEndDate")
+        .addEventListener("change", () => this.validateChurnDateRange());
+      document
+        .getElementById("downloadChurnedBtn")
+        .addEventListener("click", () => this.downloadChurnedSubscribers());
+      document
+        .getElementById("downloadNewSubscribersBtn")
+        .addEventListener("click", () => this.downloadNewSubscribers());
+      document
+        .getElementById("downloadUsageTrendsBtn")
+        .addEventListener("click", () => this.downloadUsageTrends());
+      document
+        .getElementById("applyNewSubscribersDateRange")
+        .addEventListener("click", () => this.applyNewSubscribersDateRange());
+      document
+        .getElementById("newSubscribersStartDate")
+        .addEventListener("change", () => this.validateNewSubscribersDateRange());
+      document
+        .getElementById("newSubscribersEndDate")
+        .addEventListener("change", () => this.validateNewSubscribersDateRange());
+      document
+        .getElementById("applyUsageTrendsDateRange")
+        .addEventListener("click", () => this.applyUsageTrendsDateRange());
+      document
+        .getElementById("usageTrendsStartDate")
+        .addEventListener("change", () => this.validateUsageTrendsDateRange());
+      document
+        .getElementById("usageTrendsEndDate")
+        .addEventListener("change", () => this.validateUsageTrendsDateRange());
+
+      // Global filter listeners
+      document
+        .getElementById("globalSubscriberFilter")
+        .addEventListener("change", () => {
+          // Update placeholder to show selected subscriber (without applying filter)
+          const selectedValue = document.getElementById(
+            "globalSubscriberFilter"
+          ).value;
+          this.updateSubscriberFilterPlaceholder(selectedValue);
+          
+          // Update filter mode and repopulate dropdown accordingly
+          if (selectedValue === 'key_subscribers' && this.dashboardData) {
+            this.subscriberFilterMode = 'key_subscribers';
+            this.populateGlobalFilters(this.dashboardData);
+          } else if (selectedValue === 'all' && this.dashboardData) {
+            this.subscriberFilterMode = 'all';
+            // Repopulate with all subscribers when switching back to 'All Subscribers'
+            this.populateGlobalFilters(this.dashboardData);
+          }
+          // For specific subscriber selections, keep the current mode
+        });
+      
+      // Add keyboard support for Enter key on dropdown
+      document
+        .getElementById("globalSubscriberFilter")
+        .addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            this.applyGlobalFilters();
+          }
+        });
+      
+      // Apply filter button listener
+      document
+        .getElementById("applySubscriberFilterBtn")
+        .addEventListener("click", () => {
+          this.applyGlobalFilters();
+        });
+      
+      document
+        .getElementById("resetFiltersBtn")
+        .addEventListener("click", () => this.resetGlobalFilters());
+
+        document
+          .getElementById("downloadTopSubscribersBtn")
+          .addEventListener("click", () => this.downloadTopSubscribers());
+    }
+
+
+    showLoading() {
+      const loadingOverlay = document.getElementById("loadingOverlay");
+      loadingOverlay.style.display = ""; // Clear any inline styles
+      loadingOverlay.classList.remove("hidden");
+    }
+
+    hideLoading() {
+      const loadingOverlay = document.getElementById("loadingOverlay");
+      loadingOverlay.style.display = ""; // Clear any inline styles
+      loadingOverlay.classList.add("hidden");
+    }
+
+// In dashboard.html, replace the entire loadData function.
+
+    async loadData() {
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+
+      // Get global filter values
+      const subscriberFilter =
+        document.getElementById("globalSubscriberFilter")?.value || "all";
+
+      this.showLoading();
+
+      try {
+        // Build query parameters
+        const params = new URLSearchParams();
+
+        if (startDate) {
+          params.append("start_date", startDate);
+        }
+        if (endDate) {
+          params.append("end_date", endDate);
+        }
+
+        // Add filter parameters if they're not 'all'
+        if (subscriberFilter !== "all") {
+          params.append("subscriber_filter", subscriberFilter);
+        }
+
+        const response = await fetch(`/dashboard-api/?${params.toString()}`, {
+          credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+          // Handle specific HTTP status codes
+          if (response.status === 401) {
+            throw new Error('Authentication required. Please log in.');
+          } else if (response.status === 403) {
+            throw new Error('Insufficient permissions to access dashboard data.');
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+        }
+
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Server returned non-JSON response. Please check your authentication status.');
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        // Validate data structure
+        if (!data || typeof data !== "object") {
+          throw new Error("Invalid data format received from server");
+        }
+
+        // Provide default values for missing data
+        const safeData = {
+          total_subscribers: data.total_subscribers || 0,
+          active_subscribers: data.active_subscribers || 0,
+          total_usage_entries: data.total_usage_entries || 0,
+          top_subscribers: Array.isArray(data.top_subscribers)
+            ? data.top_subscribers
+            : [],
+          top_products: Array.isArray(data.top_products)
+            ? data.top_products
+            : [],
+          all_products_by_frequency: Array.isArray(data.all_products_by_frequency) ? data.all_products_by_frequency : [],
+          all_subscribers_by_usage: Array.isArray(data.all_subscribers_by_usage) ? data.all_subscribers_by_usage : [],
+          usage_trends: Array.isArray(data.usage_trends)
+            ? data.usage_trends
+            : [],
+          new_subscribers: Array.isArray(data.new_subscribers)
+            ? data.new_subscribers
+            : [],
+          churn_data: data.churn_data || {
+            churn_rate: 0,
+            churned_count: 0,
+            current_subscribers: 0,
+          },
+          retention_rate: data.retention_rate || { retention_rate: 0 },
+          engagement_rate: data.engagement_rate || { engagement_rate: 0 },
+          highest_product_by_transaction:
+            data.highest_product_by_transaction || "N/A",
+
+          unique_products: Array.isArray(data.unique_products)
+            ? data.unique_products
+            : [],
+          unique_subscribers: Array.isArray(data.unique_subscribers)
+            ? data.unique_subscribers
+            : [],
+          daily_comparison: data.daily_comparison || null,
+          week_comparison: data.week_comparison || null,
+          month_comparison: data.month_comparison || null,
+          // same_day_comparison: data.same_day_comparison || null,  // Commented out - not needed for now
+          // --- FIX: Ensure key_subscribers_list is safely handled ---
+          key_subscribers_list: Array.isArray(data.key_subscribers_list)
+            ? data.key_subscribers_list
+            : [],
+          // Pass is_admin flag for dropdown visibility
+          is_admin: data.is_admin || false,
+        };
+
+        this.updateMetrics(safeData);
+        this.updateCharts(safeData);
+        this.updateLastUpdated();
+        this.isDataLoaded = true;
+        this.manageButtonStates();
+        this.updateSubscriberFilterPlaceholder(subscriberFilter);
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+
+        // Show user-friendly error message
+        const errorMessage = error.message.includes("fetch")
+          ? "Network error. Please check your connection and try again."
+          : `Error loading dashboard data: ${error.message}`;
+
+        // Update UI to show error state instead of breaking
+        const elements = [
+          "totalSubscribers", "totalUsage", "topSubscriber",
+          "highestProductByTransaction",
+        ];
+        
+        elements.forEach(elementId => {
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.textContent = "Error";
+          }
+        });
+
+        alert(errorMessage);
+      } finally {
+        this.hideLoading();
+      }
+    }
+// In dashboard.html, replace the entire updateMetrics function.
+
+    updateMetrics(data) {
+      console.log("updateMetrics called with data:", data);
+      console.log("active_subscribers value:", data.active_subscribers);
+      
+      // Add null checks to prevent TypeError
+      const totalSubscribersEl = document.getElementById("totalSubscribers");
+      if (totalSubscribersEl) {
+        totalSubscribersEl.textContent = (data.total_subscribers ?? 0).toLocaleString();
+      }
+      
+      // Update active subscribers count
+      const activeSubscribersEl = document.getElementById("activeSubscribers");
+      console.log("activeSubscribersEl found:", activeSubscribersEl);
+      if (activeSubscribersEl) {
+        console.log("Setting activeSubscribers to:", data.active_subscribers);
+        activeSubscribersEl.textContent = (data.active_subscribers ?? 0).toLocaleString();
+      }
+      
+      const totalUsageEl = document.getElementById("totalUsage");
+      if (totalUsageEl) {
+        totalUsageEl.textContent = (data.total_usage_entries ?? 0).toLocaleString();
+      }
+
+
+
+
+      // Update top subscriber
+      const topSubscriber =
+        data.top_subscribers && data.top_subscribers.length > 0
+          ? data.top_subscribers[0].SubscriberName
+          : "N/A";
+      const topSubscriberEl = document.getElementById("topSubscriber");
+      if (topSubscriberEl) {
+        // Store full name for filtering, display full name (no ellipsis)
+        topSubscriberEl.textContent = topSubscriber;
+        topSubscriberEl.dataset.fullName = topSubscriber;
+      }
+
+      const retentionRateEl = document.getElementById("retentionRate");
+      if (retentionRateEl) {
+        retentionRateEl.textContent = `${data.retention_rate.retention_rate}%`;
+      }
+
+      // Update engagement rate
+      const engagementRateEl = document.getElementById("engagementRate");
+      if (engagementRateEl) {
+        engagementRateEl.textContent = `${data.engagement_rate.engagement_rate}%`;
+      }
+
+
+      // Update highest product by transaction
+      const highestProductByTransaction =
+        data.highest_product_by_transaction || "N/A";
+      const highestProductByTransactionEl = document.getElementById("highestProductByTransaction");
+      if (highestProductByTransactionEl) {
+        // Display full name (no ellipsis)
+        highestProductByTransactionEl.textContent = highestProductByTransaction;
+      }
+
+      // Update churn metrics
+      const churnRateEl = document.getElementById("churnRate");
+      if (churnRateEl) {
+        churnRateEl.textContent = `${data.churn_data.churn_rate}%`;
+      }
+      
+      const churnedCountEl = document.getElementById("churnedCount");
+      if (churnedCountEl) {
+        churnedCountEl.textContent = data.churn_data.churned_count.toLocaleString();
+      }
+      
+      const activeCountEl = document.getElementById("activeCount");
+      if (activeCountEl) {
+        activeCountEl.textContent = data.churn_data.current_subscribers.toLocaleString();
+      }
+
+      // --- FIX: Call both dropdown population functions correctly ---
+      this.populateGlobalFilters(data);
+      this.populateFilterDropdowns(data);
+
+
+     // --- Daily Comparison Metric Logic ---
+      const yesterdayUsageEl = document.getElementById("yesterdayUsage");
+      const prevMonthSameDayUsageEl = document.getElementById("prevMonthSameDayUsage");
+      const dailyComparisonLabelEl = document.getElementById("dailyComparisonLabel");
+      
+      if (data.daily_comparison) {
+        if (yesterdayUsageEl) {
+          const yesterdayCount = data.daily_comparison.yesterday.count;
+          yesterdayUsageEl.textContent = yesterdayCount.toLocaleString();
+        }
+        if (prevMonthSameDayUsageEl) {
+          const prevMonthCount = data.daily_comparison.previous_month_same_day.count;
+          prevMonthSameDayUsageEl.textContent = prevMonthCount.toLocaleString();
+        }
+        if (dailyComparisonLabelEl) {
+          const yesterdayDate = new Date(data.daily_comparison.yesterday.date + 'T00:00:00');
+          const prevMonthDate = new Date(data.daily_comparison.previous_month_same_day.date + 'T00:00:00');
+          dailyComparisonLabelEl.textContent = `Usage: ${yesterdayDate.toLocaleDateString()} vs ${prevMonthDate.toLocaleDateString()}`;
+        }
+      } else {
+        if (yesterdayUsageEl) {
+          yesterdayUsageEl.textContent = "-";
+        }
+        if (prevMonthSameDayUsageEl) {
+          prevMonthSameDayUsageEl.textContent = "-";
+        }
+        if (dailyComparisonLabelEl) {
+          dailyComparisonLabelEl.textContent = "Yesterday's Usage vs. Same Day Last Month";
+        }
+      }
+
+      // --- Week Comparison Metric ---
+      this.updateComparisonCard(data.week_comparison, 'week', 'current_week', 'previous_week');
+      
+      // --- Month Comparison Metric ---
+      this.updateComparisonCard(data.month_comparison, 'month', 'current_month', 'previous_month');
+      
+      // --- Same Day Comparison Metric --- (Commented out - not needed for now)
+      // this.updateSameDayComparisonCard(data.same_day_comparison);
+    }
+
+    updateComparisonCard(comparisonData, prefix, currentKey, previousKey) {
+      const currentCountEl = document.getElementById(`${prefix}CurrentCount`);
+      const percentageChangeEl = document.getElementById(`${prefix}PercentageChange`);
+      const detailsEl = document.getElementById(`${prefix}ComparisonDetails`);
+
+      if (comparisonData) {
+        if (currentCountEl) {
+          currentCountEl.textContent = comparisonData[currentKey].count.toLocaleString();
+        }
+        if (percentageChangeEl) {
+          const pct = comparisonData.percentage_change;
+          const arrow = comparisonData.trend === 'up' ? '↑' : (comparisonData.trend === 'down' ? '↓' : '→');
+          const color = comparisonData.trend === 'up' ? '#22c55e' : (comparisonData.trend === 'down' ? '#ef4444' : '#6b7280');
+          percentageChangeEl.innerHTML = `<span style="color: ${color}; font-weight: 600;">${arrow} ${Math.abs(pct)}%</span>`;
+        }
+        if (detailsEl) {
+          detailsEl.textContent = `vs ${comparisonData[previousKey].count.toLocaleString()} last ${prefix}`;
+        }
+      } else {
+        if (currentCountEl) currentCountEl.textContent = '-';
+        if (percentageChangeEl) percentageChangeEl.textContent = '';
+        if (detailsEl) detailsEl.textContent = '';
+      }
+    }
+
+    // COMMENTED OUT - Not needed for now
+    // updateSameDayComparisonCard(comparisonData) {
+    //   const currentCountEl = document.getElementById('sameDayCurrentCount');
+    //   const percentageChangeEl = document.getElementById('sameDayPercentageChange');
+    //   const detailsEl = document.getElementById('sameDayComparisonDetails');
+
+    //   if (comparisonData) {
+    //     if (currentCountEl) {
+    //       currentCountEl.textContent = comparisonData.today.count.toLocaleString();
+    //     }
+    //     if (percentageChangeEl) {
+    //       const pct = comparisonData.percentage_change;
+    //       const arrow = comparisonData.trend === 'up' ? '↑' : (comparisonData.trend === 'down' ? '↓' : '→');
+    //       const color = comparisonData.trend === 'up' ? '#22c55e' : (comparisonData.trend === 'down' ? '#ef4444' : '#6b7280');
+    //       percentageChangeEl.innerHTML = `<span style="color: ${color}; font-weight: 600;">${arrow} ${Math.abs(pct)}%</span>`;
+    //     }
+    //     if (detailsEl) {
+    //       const prevDate = new Date(comparisonData.same_day_last_month.date + 'T00:00:00');
+    //       detailsEl.textContent = `vs ${comparisonData.same_day_last_month.count.toLocaleString()} on ${prevDate.toLocaleDateString()}`;
+    //     }
+    //   } else {
+    //     if (currentCountEl) currentCountEl.textContent = '-';
+    //     if (percentageChangeEl) percentageChangeEl.textContent = '';
+    //     if (detailsEl) detailsEl.textContent = '';
+    //   }
+    // }
+
+    updateLastUpdated() {
+      const now = new Date();
+      const lastUpdatedEl = document.getElementById("lastUpdated");
+      if (lastUpdatedEl) {
+        lastUpdatedEl.textContent = now.toLocaleTimeString();
+      }
+    }
+
+    updateCharts(data) {
+      this.dashboardData = data; // Store data for filtering
+      // Fetch usage trends with 'default' mode (current month vs previous month)
+      this.loadDefaultUsageTrends();
+      this.createTopProductsChart(data.top_products);
+      this.createTopSubscribersChart(data.top_subscribers);
+      // this.createRevenueChart(data.revenue_data);
+      this.createNewSubscribersChart(data.new_subscribers);
+      
+      // Set initial period indicator for New Subscribers (default is "Last 30 days")
+      const filterValue = document.getElementById("newSubscribersTimeFilter").value;
+      const days = parseInt(filterValue) || 30;
+      const today = new Date();
+      const startDateObj = new Date(today);
+      startDateObj.setDate(today.getDate() - days);
+      const formattedStart = startDateObj.toLocaleDateString();
+      const formattedEnd = today.toLocaleDateString();
+      document.getElementById('newSubscribersCurrentPeriodText').textContent = `${formattedStart} - ${formattedEnd}`;
+      document.getElementById('newSubscribersCurrentPeriod').style.display = 'block';
+
+      // 3-month chart will be loaded on demand when button is clicked
+    }
+
+    loadDefaultUsageTrends() {
+      this.showLoading();
+      
+      const subscriberFilter = this.appliedSubscriberFilter || "all";
+      const params = new URLSearchParams({
+        comparison_mode: 'default'
+      });
+      
+      if (subscriberFilter !== "all") {
+        params.append("subscriber_filter", subscriberFilter);
+      }
+      
+      console.log('Loading default usage trends with params:', params.toString());
+      
+      fetch(`/api/usage-trends/?${params.toString()}`, {
+        credentials: 'same-origin'
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Usage trends API response:', data);
+          
+          // Check for API error
+          if (data.error) {
+            console.error('API returned error:', data.error);
+            // Fallback to stored data
+            if (this.dashboardData && this.dashboardData.usage_trends) {
+              this.createUsageTrendsChart(this.dashboardData.usage_trends);
+            }
+            this.hideLoading();
+            return;
+          }
+          
+          this.usageTrendsComparisonData = data;
+          
+          if (data.has_comparison && data.usage_trends_previous) {
+            this.createUsageTrendsChart(
+              data.usage_trends,
+              data.usage_trends_previous,
+              data.current_period_label || 'Current Month',
+              data.previous_period_label || 'Previous Month'
+            );
+          } else {
+            this.createUsageTrendsChart(data.usage_trends);
+          }
+          
+          // Show current period indicator with the period labels from API
+          if (data.current_period_label) {
+            document.getElementById('usageTrendsCurrentPeriodText').textContent = data.current_period_label;
+            document.getElementById('usageTrendsCurrentPeriod').style.display = 'block';
+          } else {
+            // Hide if no label available
+            document.getElementById('usageTrendsCurrentPeriod').style.display = 'none';
+          }
+          
+          this.hideLoading();
+        })
+        .catch(error => {
+          console.error('Error loading default usage trends:', error);
+          // Fallback to stored data
+          if (this.dashboardData && this.dashboardData.usage_trends) {
+            console.log('Using fallback data from dashboardData');
+            this.createUsageTrendsChart(this.dashboardData.usage_trends);
+          }
+          this.hideLoading();
+        });
+    }
+
+
+
+
+    // In dashboard.html, replace the entire function with this one.
+
+// In dashboard.html, replace the entire function with this one
+// In dashboard.html, replace the entire populateFilterDropdowns function.
+
+    populateFilterDropdowns(data) {
+        console.log("--- Starting Dropdown Population ---");
+
+        // --- Product Filter Logic ---
+        const productFilter = document.getElementById("topProductsFilter");
+        productFilter.innerHTML = '<option value="all">All Products</option>';
+        let products = data.unique_products || [];
+
+        products.forEach((product) => {
+            if (product) {
+                const option = new Option(
+                    product.length > 20 ? product.substring(0, 20) + "..." : product,
+                    product
+                );
+                productFilter.appendChild(option);
+            }
+        });
+
+        // --- Subscriber Filter Logic ---
+        const subscriberFilter = document.getElementById("topSubscribersFilter");
+        subscriberFilter.innerHTML = '<option value="all">All Subscribers</option>';
+
+        let subscribersToDisplay;
+        
+        // --- FIX: This is the core logic that selects the correct list of names ---
+        if (this.appliedSubscriberFilter === 'key_subscribers') {
+            console.log("LOGIC: 'key_subscribers' selected. Using key_subscribers_list.");
+            subscribersToDisplay = data.key_subscribers_list || [];
+        } else {
+            console.log("LOGIC: Using the default unique_subscribers list.");
+            subscribersToDisplay = data.unique_subscribers || [];
+        }
+        
+        console.log("Final list for dropdown:", subscribersToDisplay);
+
+        // Now, populate the dropdown using the chosen list, sorted alphabetically
+        subscribersToDisplay.sort().forEach((subscriber) => {
+            if (subscriber) {
+                const option = new Option(
+                    subscriber.length > 25 ?
+                    subscriber.substring(0, 25) + "..." :
+                    subscriber,
+                    subscriber
+                );
+                subscriberFilter.appendChild(option);
+            }
+        });
+
+        console.log("--- Finished Dropdown Population ---");
+    }
+    // Individual chart update methods
+    updateUsageTrendsChart() {
+      if (!this.dashboardData) return;
+      this.showLoading();
+      
+      const filterValue = document.getElementById("usageTrendsTimeFilter").value;
+      
+      if (filterValue === "custom") {
+        // Show custom date range controls
+        document.getElementById("usageTrendsDateRange").style.display = "block";
+        this.hideLoading();
+        return;
+      } else {
+        // Hide custom date range controls and applied date range display
+        document.getElementById("usageTrendsDateRange").style.display = "none";
+        document.getElementById("appliedUsageTrendsDateRange").style.display = "none";
+        
+        const days = parseInt(filterValue);
+        
+        // Calculate the correct date range (last N days from today backwards)
+        const today = new Date();
+        const startDateObj = new Date(today);
+        startDateObj.setDate(today.getDate() - days);
+        
+        const endDate = today.toISOString().split('T')[0];
+        const startDate = startDateObj.toISOString().split('T')[0];
+        
+        // Use the applied subscriber filter
+        const subscriberFilter = this.appliedSubscriberFilter || "all";
+        
+        // Build query parameters with 'preset' comparison mode
+        const params = new URLSearchParams({
+          start_date: startDate,
+          end_date: endDate,
+          comparison_mode: 'preset'
+        });
+        
+        if (subscriberFilter !== "all") {
+          params.append("subscriber_filter", subscriberFilter);
+        }
+        
+        // Fetch data with comparison
+        fetch(`/api/usage-trends/?${params.toString()}`, {
+          credentials: 'same-origin'
+        })
+          .then(response => response.json())
+          .then(data => {
+            // Store comparison data for download
+            this.usageTrendsComparisonData = data;
+            
+            // Create chart with both datasets if comparison exists
+            if (data.has_comparison && data.usage_trends_previous) {
+              this.createUsageTrendsChart(
+                data.usage_trends,
+                data.usage_trends_previous,
+                data.current_period_label || 'Current Period',
+                data.previous_period_label || 'Previous Period'
+              );
+            } else {
+              this.createUsageTrendsChart(data.usage_trends);
+            }
+            
+            // Show current period indicator
+            const formattedStart = new Date(startDate).toLocaleDateString();
+            const formattedEnd = new Date(endDate).toLocaleDateString();
+            document.getElementById('usageTrendsCurrentPeriodText').textContent = `${formattedStart} - ${formattedEnd}`;
+            document.getElementById('usageTrendsCurrentPeriod').style.display = 'block';
+            
+            this.hideLoading();
+          })
+          .catch(error => {
+            console.error('Error fetching usage trends with comparison:', error);
+            // Fallback to current data only
+            const filteredData = this.dashboardData.usage_trends.filter(item => {
+              return item.date >= startDate && item.date <= endDate;
+            });
+            this.createUsageTrendsChart(filteredData);
+            this.hideLoading();
+          });
+        
+        return; // Exit early since we're handling async
+      }
+    }
+
+
+
+  // In dashboard.html
+
+    updateTopProductsChart() {
+      if (!this.dashboardData) return;
+      this.showLoading();
+      const selectedProduct =
+        document.getElementById("topProductsFilter").value;
+
+      // Use the complete list for filtering, but fall back to top_products for the "All" view.
+      let dataToFilter = this.dashboardData.all_products_by_frequency || [];
+      let dataForChart;
+
+      if (selectedProduct !== "all") {
+        // When filtering for a specific product, search the complete list
+        dataForChart = dataToFilter.filter(
+          (item) => item.ProductName === selectedProduct
+        );
+      } else {
+        // When showing "All", use the top_products list to keep the chart clean
+        dataForChart = this.dashboardData.top_products;
+      }
+
+      this.createTopProductsChart(dataForChart);
+      this.hideLoading();
+    }
+
+  // In dashboard.html
+
+  // In dashboard.html
+    updateTopSubscribersChart() {
+      console.log("--- Debugging Top Subscribers Chart ---"); // DEBUGGING START
+
+      if (!this.dashboardData) {
+        console.error("Dashboard data is not available. Aborting.");
+        return;
+      }
+      this.showLoading();
+      const selectedSubscriber = document.getElementById(
+        "topSubscribersFilter"
+      ).value;
+      
+      console.log("1. Subscriber selected from dropdown:", selectedSubscriber); // DEBUGGING STEP 1
+
+      // CORRECTED: Use the complete list for filtering, but fall back to the top_subscribers list for the "All" view.
+      let dataToFilter = this.dashboardData.all_subscribers_by_usage;
+      let dataForChart;
+
+      console.log("2. Checking for the complete list 'all_subscribers_by_usage':", dataToFilter); // DEBUGGING STEP 2
+
+      if (!dataToFilter || !Array.isArray(dataToFilter)) {
+          console.error("Error: The complete list 'all_subscribers_by_usage' is missing or not an array. Using empty list.");
+          dataToFilter = [];
+      }
+
+      if (selectedSubscriber !== "all") {
+        // When filtering for a specific subscriber, search the complete list
+        console.log("3. Filtering the complete list for the selected subscriber..."); // DEBUGGING STEP 3
+        dataForChart = dataToFilter.filter(
+          (item) => item.SubscriberName === selectedSubscriber
+        );
+      } else {
+        // When showing "All", use the top_subscribers list to keep the chart clean
+        console.log("3. 'All' is selected. Using the top_subscribers list for the chart."); // DEBUGGING STEP 3
+        dataForChart = this.dashboardData.top_subscribers;
+      }
+
+      console.log("4. Final data being sent to the chart:", dataForChart); // DEBUGGING STEP 4
+      if (selectedSubscriber !== "all" && dataForChart.length === 0) {
+          console.warn("Warning: Filtering resulted in an empty list. The selected subscriber was not found in the complete list.");
+      }
+
+      this.createTopSubscribersChart(dataForChart);
+      this.hideLoading();
+      console.log("--- End of Debugging ---"); // DEBUGGING END
+
+    }            // updateRevenueChart() {
+            //   if (!this.dashboardData) return;
+            //   this.showLoading();
+            //   const selectedProduct = document.getElementById(
+            //     "revenueProductFilter"
+            //   ).value;
+            //   let filteredData = this.dashboardData.revenue_data;
+
+            //   if (selectedProduct !== "all") {
+            //     filteredData = filteredData.filter(
+            //       (item) => item.product === selectedProduct
+            //     );
+            //   }
+
+            //   this.createRevenueChart(filteredData);
+            //   this.hideLoading();
+            // }
+
+    updateNewSubscribersChart() {
+      if (!this.dashboardData) return;
+      this.showLoading();
+      
+      const filterValue = document.getElementById("newSubscribersTimeFilter").value;
+      
+      if (filterValue === "custom") {
+        // Show custom date range controls
+        document.getElementById("newSubscribersDateRange").style.display = "block";
+        this.hideLoading();
+        return;
+      }
+      
+      // Hide custom date range controls and applied date range display
+      document.getElementById("newSubscribersDateRange").style.display = "none";
+      document.getElementById("appliedNewSubscribersDateRange").style.display = "none";
+      
+      const days = parseInt(filterValue);
+      
+      // Calculate the correct date range (last N days from today backwards)
+      const today = new Date();
+      const startDateObj = new Date(today);
+      startDateObj.setDate(today.getDate() - days);
+      
+      const endDate = today.toISOString().split('T')[0];
+      const startDate = startDateObj.toISOString().split('T')[0];
+      
+      // Use the applied subscriber filter (consistent with Usage Trends)
+      const subscriberFilter = this.appliedSubscriberFilter || "all";
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate
+      });
+      
+      // Add subscriber filter if not 'all'
+      if (subscriberFilter !== "all") {
+        params.append("subscriber_filter", subscriberFilter);
+      }
+      
+      // Make fresh API call instead of client-side filtering (consistent with Usage Trends)
+      fetch(`/api/new-subscribers-trend/?${params.toString()}`, {
+        credentials: 'same-origin'
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          this.createNewSubscribersChart(data.new_subscribers);
+          
+          // Show current period indicator
+          const formattedStart = new Date(startDate).toLocaleDateString();
+          const formattedEnd = new Date(endDate).toLocaleDateString();
+          document.getElementById('newSubscribersCurrentPeriodText').textContent = `${formattedStart} - ${formattedEnd}`;
+          document.getElementById('newSubscribersCurrentPeriod').style.display = 'block';
+          
+          this.hideLoading();
+        })
+        .catch(error => {
+          console.error('Error fetching new subscribers data:', error);
+          // Fallback to client-side filtering if API fails
+          const filteredData = this.dashboardData.new_subscribers.filter(item => {
+            return item.date >= startDate && item.date <= endDate;
+          });
+          this.createNewSubscribersChart(filteredData);
+          
+          // Still show current period indicator on fallback
+          const formattedStart = new Date(startDate).toLocaleDateString();
+          const formattedEnd = new Date(endDate).toLocaleDateString();
+          document.getElementById('newSubscribersCurrentPeriodText').textContent = `${formattedStart} - ${formattedEnd}`;
+          document.getElementById('newSubscribersCurrentPeriod').style.display = 'block';
+          
+          this.hideLoading();
+        });
+    }
+
+    updateChurnAnalysis() {
+      // Get date range values
+      const startDate = document.getElementById("churnStartDate").value;
+      const endDate = document.getElementById("churnEndDate").value;
+
+      if (!startDate || !endDate) {
+        alert("Please select both start and end dates for churn analysis.");
+        return;
+      }
+
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Start date cannot be later than end date.");
+        return;
+      }
+
+      this.showLoading();
+
+      // Make API call to get churn data for the selected date range
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        churn_analysis: "true",
+      });
+
+      fetch(`/dashboard-api/?${params.toString()}`, {
+        credentials: 'same-origin'
+      })
+        .then((response) => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('Authentication required. Please log in.');
+            } else if (response.status === 403) {
+              throw new Error('Insufficient permissions to access data.');
+            } else {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response. Please check your authentication status.');
+          }
+          
+          return response.json();
+        })
+        .then((data) => {
+          if (data.churn_data) {
+            this.updateChurnDisplay(data.churn_data);
+          }
+          this.hideLoading();
+        })
+        .catch((error) => {
+          console.error("Error fetching churn data:", error);
+          this.hideLoading();
+        });
+    }
+
+    // downloadTopSubscribers() {
+    //   if (!this.isDataLoaded) {
+    //     alert("Please load the dashboard data first before downloading.");
+    //     return;
+    //   }
+
+    //   const startDate = document.getElementById("startDate").value;
+    //   const endDate = document.getElementById("endDate").value;
+    //   const subscriberFilter = this.appliedSubscriberFilter || "all";
+
+    //   const params = new URLSearchParams({
+    //     start_date: startDate,
+    //     end_date: endDate,
+    //     subscriber_filter: subscriberFilter,
+    //   });
+
+    //   const downloadUrl = `/download-top-subscribers-csv/?${params.toString()}`;
+
+    //   // Create a temporary link to trigger the download
+    //   const link = document.createElement("a");
+    //   link.href = downloadUrl;
+    //   document.body.appendChild(link);
+    //   link.click();
+    //   document.body.removeChild(link);
+    // }
+
+    // In dashboard.html, replace the entire downloadTopSubscribers function.
+
+    downloadTopSubscribers() {
+      if (!this.isDataLoaded) {
+        alert("Please load the dashboard data first before downloading.");
+        return;
+      }
+
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+      const globalFilter = this.appliedSubscriberFilter || "all";
+      
+      // Get the value from the chart's specific dropdown
+      const selectedSubscriber = document.getElementById("topSubscribersFilter").value;
+
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        subscriber_filter: globalFilter,
+      });
+
+      // Add the specific subscriber to the request ONLY if one is selected
+      if (selectedSubscriber && selectedSubscriber !== 'all') {
+        params.append('selected_subscriber', selectedSubscriber);
+      }
+
+      const downloadUrl = `/download-top-subscribers-csv/?${params.toString()}`;
+
+      // Create a temporary link to trigger the download
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    downloadChurnedSubscribers() {
+      // Get churn analysis date range values
+      const startDate = document.getElementById("churnStartDate").value;
+      const endDate = document.getElementById("churnEndDate").value;
+
+      if (!startDate || !endDate) {
+        alert("Please select both start and end dates before downloading.");
+        return;
+      }
+
+      // Build URL with parameters
+      const params = new URLSearchParams();
+      params.append("start_date", startDate);
+      params.append("end_date", endDate);
+
+      // Create download URL
+      const downloadUrl = `/download-churned-subscribers/?${params.toString()}`;
+
+      // Trigger download by creating a temporary link
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = "";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    downloadNewSubscribers() {
+      const filterValue = document.getElementById("newSubscribersTimeFilter").value;
+      
+      let startDate, endDate;
+      
+      if (filterValue === "custom") {
+        // Get custom date range values
+        startDate = document.getElementById("newSubscribersStartDate").value;
+        endDate = document.getElementById("newSubscribersEndDate").value;
+        
+        if (!startDate || !endDate) {
+          alert("Please select both start and end dates before downloading.");
+          return;
+        }
+      } else {
+        // Calculate date range based on selected days
+        const days = parseInt(filterValue);
+        const today = new Date();
+        const startDateObj = new Date(today);
+        startDateObj.setDate(today.getDate() - days);
+        
+        endDate = today.toISOString().split('T')[0];
+        startDate = startDateObj.toISOString().split('T')[0];
+      }
+      
+      // Build URL with parameters
+      const params = new URLSearchParams();
+      params.append("start_date", startDate);
+      params.append("end_date", endDate);
+      
+      // Create download URL
+      const downloadUrl = `/download-new-subscribers/?${params.toString()}`;
+      
+      // Trigger download by creating a temporary link
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = "";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    downloadUsageTrends() {
+      const filterValue = document.getElementById("usageTrendsTimeFilter").value;
+      
+      let startDate, endDate, comparisonMode;
+      
+      if (filterValue === "custom") {
+        // Get custom date range values
+        startDate = document.getElementById("usageTrendsStartDate").value;
+        endDate = document.getElementById("usageTrendsEndDate").value;
+        comparisonMode = "custom";
+        
+        if (!startDate || !endDate) {
+          alert("Please select both start and end dates before downloading.");
+          return;
+        }
+      } else {
+        // Calculate date range based on selected days
+        const days = parseInt(filterValue);
+        const today = new Date();
+        const startDateObj = new Date(today);
+        startDateObj.setDate(today.getDate() - days);
+        
+        endDate = today.toISOString().split('T')[0];
+        startDate = startDateObj.toISOString().split('T')[0];
+        comparisonMode = "preset";
+      }
+      
+      // Use the applied subscriber filter for download (not the current dropdown value)
+      const subscriberFilter = this.appliedSubscriberFilter || "all";
+      
+      // Build query parameters with correct comparison mode
+      const params = new URLSearchParams();
+      params.append("start_date", startDate);
+      params.append("end_date", endDate);
+      params.append("comparison_mode", comparisonMode);
+      
+      // Add subscriber filter if not 'all'
+      if (subscriberFilter !== "all") {
+        params.append("subscriber_filter", subscriberFilter);
+      }
+      
+      fetch(`/api/usage-trends/?${params.toString()}`, {
+        credentials: 'same-origin'
+      })
+        .then(response => response.json())
+        .then(data => {
+          this.downloadUsageTrendsCSV(
+            data.usage_trends, 
+            startDate, 
+            endDate, 
+            data.usage_trends_previous,
+            data.current_period_label,
+            data.previous_period_label
+          );
+        })
+        .catch(error => {
+          console.error('Error fetching usage trends data:', error);
+          alert('Error fetching data for download. Please try again.');
+        });
+    }
+
+
+
+    downloadUsageTrendsCSV(usageData, startDate, endDate, previousData = null, currentLabel = 'Current Period', previousLabel = 'Previous Period') {
+      // Use the applied subscriber filter (not the current dropdown value)
+      const subscriberFilter = this.appliedSubscriberFilter || "all";
+      
+      if (!usageData || usageData.length === 0) {
+        alert('No usage trends data available for download. Please load the dashboard first.');
+        return;
+      }
+      
+      const hasComparison = previousData && previousData.length > 0;
+      
+      // Create TSV content (tab-separated) with period labels in headers
+      let tsvContent = `Day Index\tDate (${currentLabel})\t${currentLabel} Usage`;
+      
+      if (hasComparison) {
+        tsvContent += `\tDate (${previousLabel})\t${previousLabel} Usage\tChange (%)`;
+      }
+      
+      // Add subscriber column if filtered
+      if (subscriberFilter !== "all") {
+        tsvContent += "\tSubscriber Name";
+      }
+      
+      tsvContent += "\n";
+      
+      // Add data rows
+      usageData.forEach((item, index) => {
+        const currentDate = new Date(item.date).toLocaleDateString();
+        let row = `${index + 1}\t${currentDate}\t${item.count}`;
+        
+        if (hasComparison) {
+          const prevItem = previousData[index];
+          if (prevItem) {
+            const prevDate = new Date(prevItem.date).toLocaleDateString();
+            const prevCount = prevItem.count;
+            
+            // Calculate percentage change
+            let pctChange = 0;
+            if (prevCount > 0) {
+              pctChange = ((item.count - prevCount) / prevCount * 100).toFixed(1);
+            } else if (item.count > 0) {
+              pctChange = 100;
+            }
+            
+            const pctSymbol = pctChange > 0 ? '+' : '';
+            row += `\t${prevDate}\t${prevCount}\t${pctSymbol}${pctChange}%`;
+          } else {
+            row += "\t-\t-\t-";
+          }
+        }
+        
+        if (subscriberFilter !== "all") {
+          row += `\t${subscriberFilter}`;
+        }
+        
+        tsvContent += row + "\n";
+      });
+
+      
+      // Create and download file
+      const blob = new Blob([tsvContent], { type: "text/tab-separated-values;charset=utf-8;" });
+      const link = document.createElement("a");
+      
+      // Generate filename with subscriber name included
+      let filename;
+      const comparisonSuffix = hasComparison ? "_comparison" : "";
+      if (subscriberFilter !== "all") {
+        const cleanSubscriberName = subscriberFilter.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_');
+        filename = `usage_trends_${cleanSubscriberName}_${startDate}_to_${endDate}${comparisonSuffix}.tsv`;
+      } else {
+        filename = `usage_trends_all_subscribers_${startDate}_to_${endDate}${comparisonSuffix}.tsv`;
+      }
+      
+      console.log('Generated filename:', filename);
+      
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+
+    applyNewSubscribersDateRange() {
+      const startDate = document.getElementById("newSubscribersStartDate").value;
+      const endDate = document.getElementById("newSubscribersEndDate").value;
+      
+      if (!startDate || !endDate) {
+        alert("Please select both start and end dates.");
+        return;
+      }
+      
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Start date cannot be later than end date.");
+        return;
+      }
+      
+      this.showLoading();
+      
+      // Fetch new subscribers data for custom date range
+      // Use the applied subscriber filter (not the current dropdown value)
+      const subscriberFilter = this.appliedSubscriberFilter || "all";
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append("start_date", startDate);
+      params.append("end_date", endDate);
+      
+      // Add subscriber filter if not 'all'
+      if (subscriberFilter !== "all") {
+        params.append("subscriber_filter", subscriberFilter);
+      }
+      
+      fetch(`/api/new-subscribers-trend/?${params.toString()}`, {
+        credentials: 'same-origin'
+      })
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('Authentication required. Please log in.');
+            } else if (response.status === 403) {
+              throw new Error('Insufficient permissions to access data.');
+            } else {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response. Please check your authentication status.');
+          }
+          
+          return response.json();
+        })
+        .then(data => {
+          this.createNewSubscribersChart(data.new_subscribers);
+          
+          // Show applied date range
+          const formattedStartDate = new Date(startDate).toLocaleDateString();
+          const formattedEndDate = new Date(endDate).toLocaleDateString();
+          document.getElementById('appliedDateRangeText').textContent = `${formattedStartDate} - ${formattedEndDate}`;
+          document.getElementById('appliedNewSubscribersDateRange').style.display = 'block';
+          
+          // Also update the main current period indicator
+          document.getElementById('newSubscribersCurrentPeriodText').textContent = `${formattedStartDate} - ${formattedEndDate}`;
+          document.getElementById('newSubscribersCurrentPeriod').style.display = 'block';
+          
+          this.hideLoading();
+        })
+        .catch(error => {
+          console.error('Error fetching new subscribers data:', error);
+          alert('Error fetching data. Please try again.');
+          this.hideLoading();
+        });
+    }
+
+    validateNewSubscribersDateRange() {
+      const startDate = document.getElementById("newSubscribersStartDate").value;
+      const endDate = document.getElementById("newSubscribersEndDate").value;
+      
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        alert("Start date cannot be later than end date.");
+        document.getElementById("newSubscribersStartDate").value = "";
+        document.getElementById("newSubscribersEndDate").value = "";
+      }
+    }
+
+    applyUsageTrendsDateRange() {
+      const startDate = document.getElementById("usageTrendsStartDate").value;
+      const endDate = document.getElementById("usageTrendsEndDate").value;
+      
+      console.log('=== applyUsageTrendsDateRange called ===');
+      console.log('Start date:', startDate);
+      console.log('End date:', endDate);
+      
+      if (!startDate || !endDate) {
+        alert("Please select both start and end dates.");
+        return;
+      }
+      
+      if (new Date(startDate) > new Date(endDate)) {
+        alert("Start date cannot be later than end date.");
+        return;
+      }
+      
+      this.showLoading();
+      
+      // Fetch usage trends data for custom date range
+      // Use the applied subscriber filter (not the current dropdown value)
+      const subscriberFilter = this.appliedSubscriberFilter || "all";
+      
+      // Build query parameters with 'custom' comparison mode
+      const params = new URLSearchParams();
+      params.append("start_date", startDate);
+      params.append("end_date", endDate);
+      params.append("comparison_mode", "custom");
+      
+      // Add subscriber filter if not 'all'
+      if (subscriberFilter !== "all") {
+        params.append("subscriber_filter", subscriberFilter);
+      }
+      
+      console.log('Custom range API URL:', `/api/usage-trends/?${params.toString()}`);
+      
+      fetch(`/api/usage-trends/?${params.toString()}`, {
+        credentials: 'same-origin'
+      })
+
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              throw new Error('Authentication required. Please log in.');
+            } else if (response.status === 403) {
+              throw new Error('Insufficient permissions to access data.');
+            } else {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned non-JSON response. Please check your authentication status.');
+          }
+          
+          return response.json();
+        })
+        .then(data => {
+          console.log('Custom range API response:', data);
+          
+          // Store comparison data for download
+          this.usageTrendsComparisonData = data;
+          
+          // Create chart with comparison if available, otherwise single line
+          if (data.has_comparison && data.usage_trends_previous) {
+            this.createUsageTrendsChart(
+              data.usage_trends,
+              data.usage_trends_previous,
+              data.current_period_label || 'Current Period',
+              data.previous_period_label || 'Previous Period'
+            );
+          } else {
+            this.createUsageTrendsChart(
+              data.usage_trends,
+              null,
+              data.current_period_label || 'Selected Period'
+            );
+          }
+
+          
+          // Show applied date range
+          const formattedStartDate = new Date(startDate).toLocaleDateString();
+          const formattedEndDate = new Date(endDate).toLocaleDateString();
+          document.getElementById('appliedUsageTrendsDateRangeText').textContent = `${formattedStartDate} - ${formattedEndDate}`;
+          document.getElementById('appliedUsageTrendsDateRange').style.display = 'block';
+          
+          // Also update the main current period indicator
+          document.getElementById('usageTrendsCurrentPeriodText').textContent = `${formattedStartDate} - ${formattedEndDate}`;
+          document.getElementById('usageTrendsCurrentPeriod').style.display = 'block';
+          
+          this.hideLoading();
+        })
+        .catch(error => {
+          console.error('Error fetching usage trends data:', error);
+          alert('Error fetching data. Please try again.');
+          this.hideLoading();
+        });
+    }
+
+
+
+    validateUsageTrendsDateRange() {
+      const startDate = document.getElementById("usageTrendsStartDate").value;
+      const endDate = document.getElementById("usageTrendsEndDate").value;
+      
+      if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+        alert("Start date cannot be later than end date.");
+        document.getElementById("usageTrendsStartDate").value = "";
+        document.getElementById("usageTrendsEndDate").value = "";
+      }
+    }
+
+    updateChurnDisplay(churnData) {
+      // Update churn rate
+      const churnRateElement = document.getElementById("churnRate");
+      if (churnData.churn_rate !== undefined) {
+        churnRateElement.textContent = `${churnData.churn_rate.toFixed(1)}%`;
+      } else {
+        churnRateElement.textContent = "-";
+      }
+
+      // Update churned count
+      const churnedCountElement = document.getElementById("churnedCount");
+      if (churnData.churned_count !== undefined) {
+        churnedCountElement.textContent =
+          churnData.churned_count.toLocaleString();
+      } else {
+        churnedCountElement.textContent = "-";
+      }
+
+      // Update active count
+      const activeCountElement = document.getElementById("activeCount");
+      if (churnData.current_subscribers !== undefined) {
+        activeCountElement.textContent =
+          churnData.current_subscribers.toLocaleString();
+      } else {
+        activeCountElement.textContent = "-";
+      }
+
+      // Create churn trend chart if trend data is available
+      // if (churnData.trend_data && churnData.trend_data.length > 0) {
+      //   this.createChurnTrendChart(churnData.trend_data);
+      // }
+    }
+
+    validateChurnDateRange() {
+      const startDate = document.getElementById("churnStartDate").value;
+      const endDate = document.getElementById("churnEndDate").value;
+      const applyButton = document.getElementById("applyChurnFilter");
+
+      if (startDate && endDate) {
+        if (new Date(startDate) > new Date(endDate)) {
+          applyButton.disabled = true;
+          applyButton.title = "Start date cannot be later than end date";
+        } else {
+          applyButton.disabled = false;
+          applyButton.title = "Apply date filter for churn analysis";
+        }
+      } else {
+        applyButton.disabled = !startDate || !endDate;
+        applyButton.title =
+          startDate && endDate
+            ? "Apply date filter for churn analysis"
+            : "Please select both start and end dates";
+      }
+    }
+
+populateGlobalFilters(data) {
+      // Populate global subscriber filter
+      const globalSubscriberFilter = document.getElementById(
+        "globalSubscriberFilter"
+      );
+
+      // Store current selection to maintain it
+      const currentSelection = globalSubscriberFilter.value;
+
+      // Only show 'Key Subscribers' option if the list is available (admin only)
+      const keySubscribersOption = data.key_subscribers_list && data.key_subscribers_list.length > 0 
+        ? '<option value="key_subscribers">Key Subscribers</option>' 
+        : '';
+      
+      // Show 'All Subscribers' for admin, 'My Subscribers' for managers
+      const defaultOption = data.is_admin 
+        ? '<option value="all">All Subscribers</option>' 
+        : '<option value="all">My Subscribers</option>';
+      
+      globalSubscriberFilter.innerHTML = defaultOption + keySubscribersOption
+
+      // Determine which subscribers to show based on filter mode
+      let subscribersToShow = [];
+      
+      if (this.subscriberFilterMode === 'key_subscribers') {
+        // Show only key subscribers when in 'Key Subscribers' mode
+        subscribersToShow = data.key_subscribers_list || [];
+      } else {
+        // Show all subscribers for 'All Subscribers' mode or any specific subscriber selection
+        if (data.unique_subscribers && Array.isArray(data.unique_subscribers)) {
+          subscribersToShow = data.unique_subscribers;
+        } else if (data.top_subscribers && Array.isArray(data.top_subscribers)) {
+          // Fallback for when subscriber filtering is active and unique_subscribers is not provided
+          subscribersToShow = data.top_subscribers.map(item => 
+            item.SubscriberName || item.subscriber || item.name
+          ).filter(Boolean);
+        }
+      }
+      
+      subscribersToShow.forEach((subscriber) => {
+        // Add null check to prevent TypeError
+        if (subscriber && typeof subscriber === "string") {
+          const option = new Option(
+            subscriber.length > 30
+              ? subscriber.substring(0, 30) + "..."
+              : subscriber,
+            subscriber
+          );
+          globalSubscriberFilter.appendChild(option);
+        }
+      });
+
+      // Restore previous selection if it still exists
+      if (currentSelection && currentSelection !== "all") {
+        const optionExists = Array.from(globalSubscriberFilter.options).some(
+          (option) => option.value === currentSelection
+        );
+        if (optionExists) {
+          globalSubscriberFilter.value = currentSelection;
+          // Update placeholder to show selected subscriber
+          // this.updateSubscriberFilterPlaceholder(currentSelection);
+        }
+      }
+    }
+
+    // updateSubscriberFilterPlaceholder(selectedValue) {
+    //   const globalSubscriberFilter = document.getElementById(
+    //     "globalSubscriberFilter"
+    //   );
+    //   const allOption = globalSubscriberFilter.querySelector(
+    //     'option[value="all"]'
+    //   );
+
+    //   // Update the "All Subscribers" option text to show selected subscriber
+    //   if (selectedValue && selectedValue !== "all") {
+    //     // Show the selected subscriber name in the placeholder
+    //     const displayName = selectedValue.length > 25 ? selectedValue.substring(0, 25) + "..." : selectedValue;
+    //     allOption.textContent = `Filter: ${displayName}`;
+    //     globalSubscriberFilter.value = selectedValue;
+    //   } else {
+    //     // Reset to default when "all" is selected
+    //     allOption.textContent = "All Subscribers";
+    //     globalSubscriberFilter.value = "all";
+    //   }
+    // }
+
+    updateSubscriberFilterPlaceholder(selectedValue) {
+      const globalSubscriberFilter = document.getElementById(
+        "globalSubscriberFilter"
+      );
+      const allOption = globalSubscriberFilter.querySelector(
+        'option[value="all"]'
+      );
+
+      // --- CORRECTED LOGIC ---
+      if (selectedValue && selectedValue !== "all") {
+        // Directly use the selected subscriber's name for the placeholder text.
+        // We truncate it to ensure it fits well.
+        const displayText = selectedValue.length > 25 
+                            ? selectedValue.substring(0, 25) + "..." 
+                            : selectedValue;
+        allOption.textContent = displayText;
+
+      } else {
+        // If no filter is active, show the default text.
+        allOption.textContent = "All Subscribers";
+      }
+    }
+
+    applyGlobalFilters() {
+      // Store the applied subscriber filter for use in downloads
+      const subscriberFilter = document.getElementById("globalSubscriberFilter")?.value || "all";
+      this.appliedSubscriberFilter = subscriberFilter;
+      
+      // Update the filter mode when applying filters
+      if (subscriberFilter === 'all') {
+        this.subscriberFilterMode = 'all';
+      } else if (subscriberFilter === 'key_subscribers') {
+        this.subscriberFilterMode = 'key_subscribers';
+      }
+      // For specific subscribers, keep the current mode
+      
+      // This function now triggers a new API call with the selected filters.
+      // The backend will handle the filtering and caching, ensuring correct data is displayed.
+      this.loadData();
+    }
+
+    resetGlobalFilters() {
+      document.getElementById("globalSubscriberFilter").value = "all";
+      // Reset the applied subscriber filter and mode
+      this.appliedSubscriberFilter = "all";
+      this.subscriberFilterMode = "all";
+      // Update placeholder to default
+      this.updateSubscriberFilterPlaceholder("all");
+      
+      // Reload data from the backend with no filters applied.
+      this.loadData();
+    }
+
+    createUsageTrendsChart(data, previousData = null, currentLabel = 'Current Period', previousLabel = 'Previous Period') {
+      const ctx = document.getElementById("usageTrendsChart").getContext("2d");
+      if (this.charts.usageTrends) this.charts.usageTrends.destroy();
+
+      // Handle empty or missing data
+      if (!data || data.length === 0) {
+        console.warn('No usage trends data available for chart');
+        // Show empty chart with message
+        this.charts.usageTrends = new Chart(ctx, {
+          type: "line",
+          data: { labels: [], datasets: [] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: 'No data available for selected period' }
+            }
+          }
+        });
+        return;
+      }
+
+      // Build labels based on current period data (using day index for comparison alignment)
+      const labels = data.map((item, index) => {
+        const date = new Date(item.date);
+        return `${date.getDate()}/${(date.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}`;
+      });
+
+      // Build datasets array
+      const datasets = [
+        {
+          label: currentLabel,
+          data: data.map((item) => item.count),
+          borderColor: "#667eea",
+          backgroundColor: "rgba(102, 126, 234, 0.1)",
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: "#667eea",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+          borderWidth: 2,
+        },
+      ];
+
+
+      // Add previous period dataset if provided
+      if (previousData && previousData.length > 0) {
+        datasets.push({
+          label: previousLabel,
+          data: previousData.map((item) => item.count),
+          borderColor: "#f97316",
+          backgroundColor: "rgba(249, 115, 22, 0.05)",
+          tension: 0.4,
+          fill: false,
+          pointBackgroundColor: "#f97316",
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+          borderWidth: 2,
+          borderDash: [5, 5],
+        });
+      }
+
+      this.charts.usageTrends = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: labels,
+          datasets: datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: previousData && previousData.length > 0,
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 15,
+              },
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(0,0,0,0.1)",
+              },
+            },
+            x: {
+              grid: {
+                color: "rgba(0,0,0,0.1)",
+              },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0,
+                padding: 10,
+                font: {
+                  size: 11,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+
+    createTopProductsChart(data) {
+      const ctx = document.getElementById("topProductsChart").getContext("2d");
+      if (this.charts.topProducts) this.charts.topProducts.destroy();
+
+      // Handle empty or invalid data
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        this.charts.topProducts = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["No Data"],
+            datasets: [
+              {
+                data: [1],
+                backgroundColor: ["#E0E0E0"],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false },
+            },
+          },
+        });
+        return;
+      }
+
+      const colors = [
+        "#FF6384",
+        "#36A2EB",
+        "#FFCE56",
+        "#4BC0C0",
+        "#9966FF",
+        "#FF9F40",
+        "#FF6384",
+        "#C9CBCF",
+        "#4BC0C0",
+        "#FF6384",
+      ];
+
+      this.charts.topProducts = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: data.map((item) => {
+            const productName =
+              item.ProductName || item.product || item.name || "Unknown";
+            return productName;
+          }),
+          datasets: [
+            {
+              data: data.map(
+                (item) => item.frequency || item.count || item.usage_count || 0
+              ),
+              backgroundColor: colors,
+              borderWidth: 2,
+              borderColor: "#fff",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                font: {
+                  size: 10,
+                },
+                boxWidth: 10,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const label = context.label || '';
+                  const value = context.parsed || 0;
+                  return `${label}: ${value.toLocaleString()}`;
+                }
+              }
+            },
+          },
+        },
+      });
+    }
+
+    createTopSubscribersChart(data) {
+      const ctx = document
+        .getElementById("topSubscribersChart")
+        .getContext("2d");
+      if (this.charts.topSubscribers) this.charts.topSubscribers.destroy();
+
+      // Handle empty or invalid data
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        this.charts.topSubscribers = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: ["No Data"],
+            datasets: [
+              {
+                label: "Usage Count",
+                data: [0],
+                backgroundColor: ["#E0E0E0"],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { enabled: false },
+            },
+            scales: {
+              y: { beginAtZero: true },
+              x: { display: false },
+            },
+          },
+        });
+        return;
+      }
+
+      this.charts.topSubscribers = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.map((item) => {
+            const subscriberName =
+              item.SubscriberName || item.subscriber || item.name || "Unknown";
+            return subscriberName;
+          }),
+          datasets: [
+            {
+              label: "Usage Count",
+              data: data.map(
+                (item) => item.usage_count || item.count || item.frequency || 0
+              ),
+              backgroundColor: "rgba(54, 162, 235, 0.8)",
+              borderColor: "#36A2EB",
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(0,0,0,0.1)",
+              },
+            },
+            x: {
+              grid: {
+                display: false,
+              },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0,
+                padding: 10,
+                font: {
+                  size: 11,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    // createRevenueChart(data) {
+    //   const ctx = document.getElementById("revenueChart").getContext("2d");
+    //   if (this.charts.revenue) this.charts.revenue.destroy();
+
+    //   this.charts.revenue = new Chart(ctx, {
+    //     type: "bar",
+    //     data: {
+    //       labels: data.map((item) =>
+    //         item.product.length > 15
+    //           ? item.product.substring(0, 15) + "..."
+    //           : item.product
+    //       ),
+    //       datasets: [
+    //         {
+    //           label: "Revenue (₦)",
+    //           data: data.map((item) => item.revenue),
+    //           backgroundColor: "rgba(75, 192, 192, 0.8)",
+    //           borderColor: "#4BC0C0",
+    //           borderWidth: 1,
+    //         },
+    //       ],
+    //     },
+    //     options: {
+    //       responsive: true,
+    //       maintainAspectRatio: false,
+    //       plugins: {
+    //         legend: {
+    //           display: false,
+    //         },
+    //       },
+    //       scales: {
+    //         y: {
+    //           beginAtZero: true,
+    //           grid: {
+    //             color: "rgba(0,0,0,0.1)",
+    //           },
+    //           ticks: {
+    //             callback: function (value) {
+    //               return "₦" + value.toLocaleString();
+    //             },
+    //           },
+    //         },
+    //         x: {
+    //           grid: {
+    //             display: false,
+    //           },
+    //           ticks: {
+    //             maxRotation: 45,
+    //             minRotation: 0,
+    //             padding: 10,
+    //             font: {
+    //               size: 11,
+    //             },
+    //           },
+    //         },
+    //       },
+    //     },
+    //   });
+    // }
+
+    createNewSubscribersChart(data) {
+      const ctx = document
+        .getElementById("newSubscribersChart")
+        .getContext("2d");
+      if (this.charts.newSubscribers) this.charts.newSubscribers.destroy();
+
+      this.charts.newSubscribers = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.map((item) => {
+            const date = new Date(item.date);
+            return `${date.getDate()}/${(date.getMonth() + 1)
+              .toString()
+              .padStart(2, "0")}/${date.getFullYear()}`;
+          }),
+          datasets: [
+            {
+              label: "New Subscribers",
+              data: data.map((item) => item.new_subscribers),
+              borderColor: "#9966FF",
+              backgroundColor: "rgba(153, 102, 255, 0.1)",
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: "#9966FF",
+              pointBorderColor: "#fff",
+              pointBorderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(0,0,0,0.1)",
+              },
+            },
+            x: {
+              grid: {
+                color: "rgba(0,0,0,0.1)",
+              },
+            },
+          },
+        },
+      });
+    }
+
+    createChurnTrendChart(data) {
+      const ctx = document.getElementById("churnTrendChart").getContext("2d");
+      if (this.charts.churnTrend) this.charts.churnTrend.destroy();
+
+      this.charts.churnTrend = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.map((item) => new Date(item.date).toLocaleDateString()),
+          datasets: [
+            {
+              label: "Churn Rate (%)",
+              data: data.map((item) => item.churn_rate),
+              borderColor: "#dc3545",
+              backgroundColor: "rgba(220, 53, 69, 0.1)",
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: "#dc3545",
+              pointBorderColor: "#fff",
+              pointBorderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false,
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "rgba(0,0,0,0.1)",
+              },
+              ticks: {
+                callback: function (value) {
+                  return value + "%";
+                },
+              },
+            },
+            x: {
+              grid: {
+                color: "rgba(0,0,0,0.1)",
+              },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0,
+                padding: 10,
+                font: {
+                  size: 11,
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    handleDatePresetChange() {
+      const preset = document.getElementById("datePreset").value;
+      const startDateInput = document.getElementById("startDate");
+      const endDateInput = document.getElementById("endDate");
+      const customInputs = document.getElementById("customDateInputs");
+
+      if (preset === "custom") {
+        customInputs.style.display = "flex";
+        this.enableApplyButton();
+        return;
+      }
+
+      customInputs.style.display = "none";
+
+      const today = new Date();
+      let startDate, endDate;
+
+      switch (preset) {
+        case "alltime":
+          startDate = null;
+          endDate = null;
+          break;
+      }
+
+      if (startDate) {
+        startDateInput.value = startDate.toISOString().split("T")[0];
+      } else {
+        startDateInput.value = "";
+      }
+
+      if (endDate) {
+        endDateInput.value = endDate.toISOString().split("T")[0];
+      } else {
+        endDateInput.value = "";
+      }
+
+      this.updateCurrentDateRangeDisplay();
+      // For preset changes, apply immediately
+      this.loadData();
+      this.disableApplyButton();
+    }
+
+    handleCustomDateChange() {
+      document.getElementById("datePreset").value = "custom";
+      document.getElementById("customDateInputs").style.display = "flex";
+      this.updateCurrentDateRangeDisplay();
+      this.enableApplyButton();
+    }
+
+    applyDateChanges() {
+      this.loadData();
+      this.disableApplyButton();
+    }
+
+    enableApplyButton() {
+      const applyBtn = document.getElementById("applyBtn");
+      applyBtn.disabled = false;
+      applyBtn.classList.remove("btn-outline-secondary");
+      applyBtn.classList.add("btn-refresh");
+    }
+
+    disableApplyButton() {
+      const applyBtn = document.getElementById("applyBtn");
+      applyBtn.disabled = true;
+      applyBtn.classList.remove("btn-refresh");
+      applyBtn.classList.add("btn-outline-secondary");
+    }
+
+    updateCurrentDateRangeDisplay() {
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+      const preset = document.getElementById("datePreset").value;
+      const display = document.getElementById("currentDateRange");
+
+      if (preset === "alltime") {
+        display.textContent = "All available data";
+      } else if (startDate && endDate) {
+        const start = new Date(startDate).toLocaleDateString();
+        const end = new Date(endDate).toLocaleDateString();
+        display.textContent = `${start} to ${end}`;
+      } else if (startDate) {
+        display.textContent = `From ${new Date(
+          startDate
+        ).toLocaleDateString()}`;
+      } else if (endDate) {
+        display.textContent = `Until ${new Date(endDate).toLocaleDateString()}`;
+      } else {
+        display.textContent = "No date range selected";
+      }
+    }
+
+    initializeDateInputs() {
+      // Set default to current month (1st to 1st of next month) - same as single report
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth(); // 0-indexed
+
+      // Start date: first day of the current month
+      const startDateObj = new Date(currentYear, currentMonth, 1);
+
+      // End date: first day of the next month
+      // The Date constructor handles month overflow automatically (e.g., month 11 (Dec) + 1 = month 12 -> Jan of next year)
+      const endDateObj = new Date(currentYear, currentMonth + 1, 1);
+
+      // Helper function to format date as yyyy-MM-dd using local date components
+      function formatDateToYYYYMMDD(date) {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, "0"); // getMonth is 0-indexed, +1 for actual month number
+        const day = date.getDate().toString().padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      const formattedStartDate = formatDateToYYYYMMDD(startDateObj);
+      const formattedEndDate = formatDateToYYYYMMDD(endDateObj);
+
+      console.log(
+        "Setting dates (local):",
+        formattedStartDate,
+        "to",
+        formattedEndDate
+      );
+
+      document.getElementById("startDate").value = formattedStartDate;
+      document.getElementById("endDate").value = formattedEndDate;
+      document.getElementById("datePreset").value = "custom";
+      document.getElementById("customDateInputs").style.display = "flex";
+
+      this.updateCurrentDateRangeDisplay();
+    }
+
+    // Dashboard now auto-loads on initialization - loadDashboardData method removed
+
+    // Manage button states based on data loading status
+    manageButtonStates() {
+      const applyBtn = document.getElementById('applyBtn');
+      const refreshBtn = document.getElementById('refreshBtn');
+      
+      // Refresh button is always visible since dashboard auto-loads
+      // Apply button remains functional regardless of data state
+    }
+
+    // Show placeholder content when dashboard is not loaded
+    showPlaceholderContent() {
+      // Hide loading overlay first
+      this.hideLoading();
+      
+      // Set all metrics to placeholder values
+      const metricElements = [
+        'totalSubscribers', 'totalUsage', 'totalRevenue', 'topSubscriber',
+        'retentionRate', 'highestProductByTransaction', 'highestProductByRevenue',
+        'yesterdayUsage', 'prevMonthSameDayUsage'
+      ];
+      
+      metricElements.forEach(elementId => {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.textContent = '-';
+        }
+      });
+      
+      // Set date range display
+      const currentDateRange = document.getElementById('currentDateRange');
+      if (currentDateRange) {
+        currentDateRange.textContent = 'Loading dashboard data...';
+      }
+      
+      // Set last updated
+      const lastUpdated = document.getElementById('lastUpdated');
+      if (lastUpdated) {
+        lastUpdated.textContent = 'Not loaded';
+      }
+    }
+  }
+
+  // Initialize dashboard when page loads
+  document.addEventListener("DOMContentLoaded", () => {
+    const dashboard = new DashboardManager();
+    window.dashboard = dashboard; // Make dashboard globally accessible
+
+    // Initialize churn analysis date inputs with default values (current month range)
+    const today = new Date();
+
+    // Set start date to 1st of current month
+    const currentMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      1
+    );
+
+    // Set end date to 1st of next month
+    const nextMonthStart = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      1
+    );
+
+    // Helper function to format date as yyyy-MM-dd
+    function formatDateToYYYYMMDD(date) {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    document.getElementById("churnStartDate").value =
+      formatDateToYYYYMMDD(currentMonthStart);
+    document.getElementById("churnEndDate").value =
+      formatDateToYYYYMMDD(nextMonthStart);
+  });
+
+  // Global variables for 3-month view
+  let threeMonthChart = null;
+
+  // Refresh 3-month rolling usage data
+  function refreshThreeMonthData() {
+    dashboard.showLoading();
+
+    // Get current subscriber filter
+    const subscriberFilter = document.getElementById(
+      "globalSubscriberFilter"
+    ).value;
+
+    // Build URL with 3-month view parameter
+    let url = "/dashboard-api/?three_month_view=true";
+    if (subscriberFilter && subscriberFilter !== "all") {
+      url += `&subscriber_filter=${encodeURIComponent(subscriberFilter)}`;
+    }
+
+    console.log("Refreshing 3-month data from URL:", url);
+
+    fetch(url, {
+      credentials: 'same-origin'
+    })
+      .then((response) => {
+        console.log("Response status:", response.status);
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Received refreshed data:", data);
+        if (data.three_month_usage) {
+          console.log("3-month usage data:", data.three_month_usage);
+          renderThreeMonthChart(data.three_month_usage);
+        } else {
+          console.log("No three_month_usage data in response");
+          alert("No 3-month usage data available.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error refreshing 3-month data:", error);
+        alert("Error refreshing 3-month usage data. Please try again.");
+      })
+      .finally(() => {
+        dashboard.hideLoading();
+      });
+  }
+
+  // Load 3-month rolling usage data
+  function loadThreeMonthData() {
+    dashboard.showLoading();
+
+    // Get current subscriber filter
+    const subscriberFilter = document.getElementById(
+      "globalSubscriberFilter"
+    ).value;
+
+    // Build URL with 3-month view parameter
+    let url = "/dashboard-api/?three_month_view=true";
+    if (subscriberFilter && subscriberFilter !== "all") {
+      url += `&subscriber_filter=${encodeURIComponent(subscriberFilter)}`;
+    }
+
+    console.log("Loading 3-month data from URL:", url);
+
+    fetch(url, {
+      credentials: 'same-origin'
+    })
+      .then((response) => {
+        console.log("Response status:", response.status);
+        return response.json();
+      })
+      .then((data) => {
+        console.log("Received data:", data);
+        if (data.three_month_usage) {
+          console.log("3-month usage data:", data.three_month_usage);
+          // Hide placeholder and show chart container
+          document.getElementById("threeMonthPlaceholder").style.display =
+            "none";
+          document.getElementById("threeMonthChartContainer").style.display =
+            "block";
+          // Hide the load button and show refresh button after successful load
+          document.getElementById("load3MonthBtn").style.display = "none";
+          document.getElementById("refresh3MonthBtn").style.display = "block";
+          renderThreeMonthChart(data.three_month_usage);
+        } else {
+          console.log("No three_month_usage data in response");
+          alert("No 3-month usage data available.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading 3-month data:", error);
+        alert("Error loading 3-month usage data. Please try again.");
+      })
+      .finally(() => {
+        dashboard.hideLoading();
+      });
+  }
+
+  // Render 3-month usage chart
+  function renderThreeMonthChart(data) {
+    const ctx = document
+      .getElementById("threeMonthUsageChart")
+      .getContext("2d");
+
+    // Destroy existing chart if it exists
+    if (threeMonthChart) {
+      threeMonthChart.destroy();
+    }
+
+    const labels = data.map((item) => item.month_short + " " + item.year);
+    const usageCounts = data.map((item) => item.usage_count);
+
+    threeMonthChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Usage Entries",
+            data: usageCounts,
+            backgroundColor: [
+              "rgba(54, 162, 235, 0.8)",
+              "rgba(75, 192, 192, 0.8)",
+              "rgba(255, 206, 86, 0.8)",
+            ],
+            borderColor: [
+              "rgba(54, 162, 235, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(255, 206, 86, 1)",
+            ],
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            callbacks: {
+              title: function (context) {
+                const index = context[0].dataIndex;
+                return data[index].month;
+              },
+              label: function (context) {
+                return `Usage Entries: ${context.parsed.y.toLocaleString()}`;
+              },
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                return value.toLocaleString();
+              },
+            },
+            grid: {
+              color: "rgba(0, 0, 0, 0.1)",
+            },
+          },
+          x: {
+            grid: {
+              display: false,
+            },
+          },
+        },
+        animation: {
+          duration: 1000,
+          easing: "easeInOutQuart",
+        },
+      },
+    });
+  }
+
+  // Standalone function to filter by top subscriber when card is clicked
+  function filterByTopSubscriber() {
+    const topSubscriberEl = document.getElementById('topSubscriber');
+    if (!topSubscriberEl) return;
+    
+    const subscriberName = topSubscriberEl.dataset.fullName || topSubscriberEl.textContent;
+    if (!subscriberName || subscriberName === '-' || subscriberName === 'N/A' || subscriberName === 'Error') {
+      return;
+    }
+    
+    // Find the subscriber in the dropdown and select it
+    const filterDropdown = document.getElementById('globalSubscriberFilter');
+    if (filterDropdown) {
+      // Check if the option exists
+      let optionExists = false;
+      for (let option of filterDropdown.options) {
+        if (option.value === subscriberName) {
+          optionExists = true;
+          break;
+        }
+      }
+      
+      if (optionExists) {
+        filterDropdown.value = subscriberName;
+      } else {
+        // Add the option if it doesn't exist
+        const newOption = new Option(subscriberName, subscriberName, true, true);
+        filterDropdown.add(newOption);
+      }
+      
+      // Trigger the filter apply button click
+      const applyBtn = document.getElementById('applySubscriberFilterBtn');
+      if (applyBtn) {
+        applyBtn.click();
+      }
+    }
+  }
+</script>
+{% endblock %}

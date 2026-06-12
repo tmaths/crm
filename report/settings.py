@@ -85,19 +85,6 @@ WSGI_APPLICATION = 'report.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'mssql',
-#         'NAME': 'dbexcel',
-#         'HOST': 'O2JUNE\\SQLEXPRESS',
-#         'PORT': '',
-#         'OPTIONS': {
-#             'driver': 'ODBC Driver 17 for SQL Server',
-#             'Trusted_connection': 'yes',
-#             'use_legacy_datetime': True,
-#         },
-#     }
-# }
 
 DATABASES = {
     'default': {
@@ -197,13 +184,17 @@ CACHES = {
 CACHE_MIDDLEWARE_KEY_PREFIX = 'bulkrep'
 
 # Email configuration for password reset and notifications
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'Report Generator <noreply@example.com>'
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = config('EMAIL_HOST')
+# EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+# EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+# EMAIL_USE_TLS = True
+# DEFAULT_FROM_EMAIL = 'Report Generator <noreply@example.com>'
+
+# Authentication Configuration
+LOGIN_REDIRECT_URL = '/dashboard/'  # Redirect to dashboard after login
+LOGOUT_REDIRECT_URL = '/accounts/login/'  # Redirect to login after logout
 
 # Session Configuration - Increased timeout to prevent daily authentication issues
 SESSION_COOKIE_AGE = 86400 * 7  # 7 days (604800 seconds)

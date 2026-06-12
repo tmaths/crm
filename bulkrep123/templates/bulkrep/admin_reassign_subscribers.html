@@ -1,0 +1,241 @@
+{% extends 'bulkrep/base.html' %}
+{% block title %}Reassign Subscribers{% endblock %}
+{% block extra_css %}
+<style>
+  body {
+    background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  .main-container {
+    padding: 2rem;
+    min-height: calc(100vh - 76px);
+    display: flex;
+    justify-content: center;
+  }
+
+  .selection-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .card-header-custom {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: white;
+  }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #16a34a;
+    font-size: 1.2rem;
+  }
+
+  .table-custom {
+    margin-bottom: 0;
+  }
+
+  .table-custom thead th {
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    color: #475569;
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+    white-space: nowrap;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .table-custom tbody td {
+    padding: 1.25rem 1.5rem;
+    vertical-align: middle;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+  }
+
+  .table-custom tbody tr:hover {
+    background-color: #f8fafc;
+  }
+
+  .table-custom tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .user-badge {
+    background-color: #eff6ff;
+    color: #1e40af;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .unassigned-badge {
+    background-color: #f1f5f9;
+    color: #64748b;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .form-select-custom {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+    color: #334155;
+    cursor: pointer;
+    background-color: #fff;
+    transition: all 0.2s;
+    min-width: 180px;
+  }
+
+  .form-select-custom:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+
+  .btn-save-custom {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 0.6rem 1.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+  }
+
+  .btn-save-custom:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.4);
+    color: white;
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="main-container">
+  <div class="selection-card">
+    <div class="card-header-custom">
+      <div class="card-icon">
+        <i class="fas fa-users-cog"></i>
+      </div>
+      <h4 class="mb-0 fw-bold" style="color: #1e293b; font-size: 1.25rem;">Reassign Subscribers</h4>
+    </div>
+    <div class="card-body p-0">
+      <div class="px-4 py-3 border-bottom border-light">
+        <div class="position-relative">
+          <i class="bi bi-search position-absolute text-muted" style="top: 50%; left: 1rem; transform: translateY(-50%);"></i>
+          <input type="text" id="subscriberSearch" class="form-control ps-5" placeholder="Search subscribers..." style="border-radius: 10px; border: 1px solid #e2e8f0; padding: 0.75rem;">
+        </div>
+      </div>
+      <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+        <table class="table table-custom align-middle" id="subscribersTable">
+          <thead style="position: sticky; top: 0; z-index: 10;">
+            <tr>
+              <th style="padding-left: 2rem;">Subscriber</th>
+              <th>Current Manager</th>
+              <th>Assign To</th>
+              <th class="text-end" style="padding-right: 2rem;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in subscribers %}
+            <tr class="subscriber-row">
+              <td style="padding-left: 2rem;">
+                <div class="fw-semibold subscriber-name">{{ s.name }}</div>
+              </td>
+              <td>
+                {% if s.managed_by %}
+                  <span class="user-badge">
+                    <i class="far fa-user me-1"></i> {{ s.managed_by.username }}
+                  </span>
+                {% else %}
+                  <span class="unassigned-badge">Unassigned</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" class="d-flex align-items-center gap-3 justify-content-end" id="form-{{ s.pk }}">
+                  {% csrf_token %}
+                  <input type="hidden" name="subscriber_id" value="{{ s.pk }}">
+                  <select name="user_id" class="form-select form-select-custom">
+                    <option value="">Select Manager...</option>
+                    {% for u in managers %}
+                      <option value="{{ u.id }}" {% if s.managed_by and s.managed_by.id == u.id %}selected{% endif %}>{{ u.username }}</option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </td>
+              <td class="text-end" style="padding-right: 2rem;">
+                <button type="submit" form="form-{{ s.pk }}" class="btn btn-save-custom">
+                  Save
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center py-5 text-muted">
+                No subscribers found.
+              </td>
+            </tr>
+            {% endfor %}
+            <tr id="noResultsRow" style="display: none;">
+              <td colspan="4" class="text-center py-5 text-muted">
+                No matching subscribers found.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('subscriberSearch');
+  const tableRows = document.querySelectorAll('.subscriber-row');
+  const noResultsRow = document.getElementById('noResultsRow');
+
+  searchInput.addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    let hasVisibleRows = false;
+
+    tableRows.forEach(row => {
+      const name = row.querySelector('.subscriber-name').textContent.toLowerCase();
+      if (name.includes(searchTerm)) {
+        row.style.display = '';
+        hasVisibleRows = true;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (noResultsRow) {
+      noResultsRow.style.display = hasVisibleRows ? 'none' : 'table-row';
+    }
+  });
+});
+</script>
+{% endblock %}

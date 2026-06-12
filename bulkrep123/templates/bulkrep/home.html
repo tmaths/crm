@@ -1,0 +1,47 @@
+{% extends 'bulkrep/base.html' %}
+
+{% block title %}Home - Report Generator{% endblock %}
+
+{% block content %}
+<div class="bg-gradient p-5 text-center" style="background: linear-gradient(180deg, #f3f7fd 0%, #fff 100%);">
+    <h1 class="fw-bold display-4 mb-3">Welcome to Report Generator</h1>
+    <p class="lead mb-4">Generate detailed reports for single or multiple subscribers with ease.</p>
+    <div class="d-flex justify-content-center gap-3 mb-2">
+        {% comment %} <a href="{% url 'bulkrep:single_report' %}" class="btn btn-primary btn-lg px-4">Get Started</a>
+        <a href="{% url 'bulkrep:bulk_report' %}" class="btn btn-outline-primary btn-lg px-4">Learn More</a> {% endcomment %}
+    </div>
+</div>
+<div class="container my-5">
+    <h2 class="text-center fw-bold mb-5" style="font-size:2rem;">Choose Your Report Option</h2>
+    <div class="row justify-content-center g-4">
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 p-4 text-center h-100">
+                <div class="mb-3">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10" style="width:56px;height:56px;">
+                        <i class="fa-regular fa-user fa-2x text-primary"></i>
+                    </span>
+                </div>
+                <h3 class="fw-semibold mb-2">Single Report</h3>
+                <p class="mb-4 text-muted">Generate a detailed report for a single subscriber.</p>
+                <a href="{% url 'bulkrep:single_report' %}" class="btn btn-primary w-100 py-2">
+                    <i class="fas fa-file-alt me-2"></i>Generate Single Report
+                </a>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 p-4 text-center h-100">
+                <div class="mb-3">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10" style="width:56px;height:56px;">
+                        <i class="fa-regular fa-user-group fa-2x text-success"></i>
+                    </span>
+                </div>
+                <h3 class="fw-semibold mb-2">Bulk Report</h3>
+                <p class="mb-4 text-muted">Generate reports for multiple subscribers at once.</p>
+                <a href="{% url 'bulkrep:bulk_report' %}" class="btn btn-success w-100 py-2">
+                    <i class="fas fa-file-export me-2"></i>Generate All Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

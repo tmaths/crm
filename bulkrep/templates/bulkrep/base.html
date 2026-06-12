@@ -26,11 +26,7 @@
     {% block extra_css %}{% endblock %}
     <style>
       .navbar-custom {
-        background: linear-gradient(
-          135deg,
-          rgba(102, 126, 234, 0.15) 0%,
-          rgba(118, 75, 162, 0.15) 100%
-        );
+        background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         backdrop-filter: blur(10px);
         border-bottom: 1px solid rgba(102, 126, 234, 0.1);
@@ -102,27 +98,49 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <!-- Navigation items - centered with even spacing -->
           <ul class="navbar-nav mx-auto d-flex justify-content-center gap-4">
+            {% if user.is_authenticated %}
+            {% if not user.is_superuser %}
             <li class="nav-item">
-              <a class="nav-link px-3" href="{% url 'bulkrep:single_report' %}"
-                >Single Report</a
-              >
+              <a class="nav-link px-3" href="{% url 'bulkrep:my_subscribers' %}"><i class="fas fa-users me-1"></i>My Subscribers</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link px-3" href="{% url 'bulkrep:bulk_report' %}"
-                >Bulk Report</a
-              >
+              <a class="nav-link px-3" href="{% url 'bulkrep:subscriber_performance' %}">
+                <i class="fas fa-chart-bar me-1"></i>Performance
+              </a>
             </li>
-            {% if user.is_superuser %}
+            {% endif %}
             <li class="nav-item">
               <a class="nav-link px-3" href="{% url 'bulkrep:dashboard' %}"
                 ><i class="fas fa-chart-line me-1"></i>Dashboard</a
               >
             </li>
-            <li class="nav-item">
-              <a class="nav-link px-3" href="/admin/"
-                ><i class="fas fa-cog me-1"></i>Admin</a
-              >
-            </li>
+            {% if user.is_superuser %}
+              <li class="nav-item">
+                <a class="nav-link px-3" href="/admin/">
+                  <i class="fas fa-cog me-1"></i>Admin
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link px-3" href="{% url 'bulkrep:admin_manage_subscribers' %}">
+                  <i class="fas fa-address-book me-1"></i>Manage Subscribers
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link px-3" href="{% url 'bulkrep:admin_reassign_subscribers' %}">
+                  <i class="fas fa-user-cog me-1"></i>Reassign Subscribers
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link px-3" href="{% url 'bulkrep:subscriber_performance' %}">
+                  <i class="fas fa-chart-bar me-1"></i>Performance
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link px-3" href="{% url 'bulkrep:submission_tracking' %}">
+                  <i class="fas fa-database me-1"></i>Submitted Data
+                </a>
+              </li>
+            {% endif %}
             {% endif %}
           </ul>
 

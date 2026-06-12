@@ -1,0 +1,509 @@
+{% extends 'bulkrep/base.html' %} {% load static %} {% block title %}Bulk Report
+- Report Generator{% endblock %} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+/>
+<style>
+  /* Custom dropdown with checkboxes */
+  .custom-dropdown {
+    position: relative;
+    width: 100%;
+  }
+
+  .custom-dropdown-toggle {
+    width: 100%;
+    min-height: 45px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background-color: white;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .custom-dropdown-toggle:hover {
+    border-color: #86b7fe;
+  }
+
+  .custom-dropdown-toggle:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    outline: none;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-search {
+    padding: 8px 12px;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .dropdown-search input {
+    width: 100%;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+
+  .dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .dropdown-item:hover {
+    background-color: #f8f9fa;
+  }
+
+  .dropdown-item input[type="checkbox"] {
+    margin-right: 8px;
+  }
+
+  .select-all-item {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 500;
+  }
+
+  .dropdown-arrow {
+    transition: transform 0.2s;
+  }
+
+  .dropdown-arrow.rotated {
+    transform: rotate(180deg);
+  }
+
+  .selected-count {
+    color: #6c757d;
+    font-size: 14px;
+  }
+</style>
+{% endblock %} {% block content %}
+<div
+  class="d-flex justify-content-center align-items-center"
+  style="min-height: 80vh; background: #f7f9fb"
+>
+  <div
+    class="card shadow-sm border-0"
+    style="max-width: 600px; width: 100%; border-radius: 18px"
+  >
+    <div
+      class="card-header text-white"
+      style="background: #16a34a; border-radius: 18px 18px 0 0"
+    >
+      <h4 class="mb-0 d-flex align-items-center">
+        <span
+          class="d-inline-flex align-items-center justify-content-center rounded-circle bg-white bg-opacity-10 me-2"
+          style="width: 32px; height: 32px"
+        >
+          <i class="fa-regular fa-user-group fa-lg"></i>
+        </span>
+        Generate Bulk Reports
+      </h4>
+    </div>
+    <div class="card-body p-4">
+      <form
+        method="post"
+        class="needs-validation"
+        id="bulkReportForm"
+        novalidate
+      >
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Select Subscribers</label>
+
+          <div class="custom-dropdown" style="max-width: 400px">
+              <div class="custom-dropdown-toggle" id="subscriberDropdown" tabindex="0">
+                  <span class="selected-text">Choose subscribers...</span>
+                  <i class="bi bi-chevron-down dropdown-arrow"></i>
+              </div>
+            <div class="dropdown-menu" id="subscriberMenu">
+              <div class="dropdown-search">
+                <input
+                  type="text"
+                  id="searchInput"
+                  placeholder="Search subscribers..."
+                  autocomplete="off"
+                />
+              </div>
+              <div class="dropdown-items">
+                {% for subscriber in subscribers %}
+                <div class="dropdown-item" data-value="{{ subscriber.id }}">
+                  <input
+                    type="checkbox"
+                    name="subscribers"
+                    value="{{ subscriber.id }}"
+                    id="sub_{{ forloop.counter }}"
+                  />
+                  <label for="sub_{{ forloop.counter }}"
+                    >{{ subscriber.name }}</label
+                  >
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center mt-2 mb-2">
+            <button
+              type="button"
+              id="selectAllBtn"
+              class="btn btn-sm btn-outline-secondary me-2"
+            >
+              <i class="bi bi-check2-all me-1"></i> Select All
+            </button>
+            <button
+              type="button"
+              id="deselectAllBtn"
+              class="btn btn-sm btn-outline-secondary"
+            >
+              <i class="bi bi-x-lg me-1"></i> Deselect All
+            </button>
+          </div>
+          <div class="form-text">Search and select multiple subscribers</div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold mb-2">Report Options</label>
+          <div class="d-flex gap-4">
+            <div class="form-check form-check-inline">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="include_bills"
+                name="include_bills"
+                checked
+              />
+              <label class="form-check-label" for="include_bills"
+                >Include Summary Bills</label
+              >
+            </div>
+            <div class="form-check form-check-inline">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="include_products"
+                name="include_products"
+                checked
+              />
+              <label class="form-check-label" for="include_products"
+                >Include Product Details</label
+              >
+            </div>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold mb-2">Output Format</label>
+          <div class="d-flex gap-4">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="output_format"
+                id="format_pdf"
+                value="pdf"
+                checked
+              />
+              <label class="form-check-label" for="format_pdf">
+                <i class="fa-regular fa-file-pdf text-danger me-1"></i>
+                <strong>PDF</strong> (Fast, Styled)
+              </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="output_format"
+                id="format_excel"
+                value="excel"
+              />
+              <label class="form-check-label" for="format_excel">
+                <i class="fa-regular fa-file-excel text-success me-1"></i>
+                <strong>Excel</strong> (Editable)
+              </label>
+            </div>
+          </div>
+          {% comment %} <div class="form-text">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            PDF is 10-20x faster for large datasets and includes full styling
+          </div> {% endcomment %}
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold mb-2">Date Range</label>
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="input-group">
+                <span class="input-group-text"
+                  ><i class="fa-regular fa-calendar"></i
+                ></span>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="start_date"
+                  name="start_date"
+                  required
+                  value="{{ start_date }}"
+                />
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="input-group">
+                <span class="input-group-text"
+                  ><i class="fa-regular fa-calendar"></i
+                ></span>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="end_date"
+                  name="end_date"
+                  required
+                  value="{{ end_date }}"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-grid gap-2 mb-2">
+          <button
+            type="submit"
+            class="btn btn-success btn-lg fw-semibold"
+            id="bulkGenerateBtn"
+          >
+            <span
+              class="spinner-border spinner-border-sm d-none"
+              id="bulkSpinner"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            <i class="fas fa-file-export me-2" id="bulkExportIcon"></i>Generate
+            Reports
+          </button>
+          <a
+            href="{% url 'bulkrep:home' %}"
+            class="btn btn-outline-secondary btn-lg"
+          >
+            <i class="fas fa-arrow-left me-2"></i>Back to Home
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const dropdown = document.getElementById("subscriberDropdown");
+    const menu = document.getElementById("subscriberMenu");
+    const arrow = dropdown.querySelector(".dropdown-arrow");
+    const selectedText = dropdown.querySelector(".selected-text");
+    const searchInput = document.getElementById("searchInput");
+    const checkboxes = document.querySelectorAll('input[name="subscribers"]');
+
+    const selectAllBtn = document.getElementById("selectAllBtn");
+    const deselectAllBtn = document.getElementById("deselectAllBtn");
+
+    // Toggle dropdown
+    dropdown.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleDropdown();
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (e) {
+      if (!dropdown.contains(e.target) && !menu.contains(e.target)) {
+        closeDropdown();
+      }
+    });
+
+    // Prevent dropdown from closing when clicking inside menu
+    menu.addEventListener("click", function (e) {
+      e.stopPropagation();
+    });
+
+    // Search functionality
+    searchInput.addEventListener("input", function () {
+      const searchTerm = this.value.toLowerCase();
+      const items = document.querySelectorAll(".dropdown-item");
+
+      items.forEach(function (item) {
+        const text = item.querySelector("label").textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+          item.style.display = "flex";
+        } else {
+          item.style.display = "none";
+        }
+      });
+    });
+
+    // Handle checkbox changes
+    checkboxes.forEach(function (checkbox) {
+      checkbox.addEventListener("change", function () {
+        updateSelectedText();
+      });
+    });
+
+    // Select All functionality
+    selectAllBtn.addEventListener("click", function () {
+      checkboxes.forEach(function (checkbox) {
+        checkbox.checked = true;
+      });
+      updateSelectedText();
+    });
+
+    // Deselect All functionality
+    deselectAllBtn.addEventListener("click", function () {
+      checkboxes.forEach(function (checkbox) {
+        checkbox.checked = false;
+      });
+      updateSelectedText();
+    });
+
+    function toggleDropdown() {
+      const isOpen = menu.classList.contains("show");
+      if (isOpen) {
+        closeDropdown();
+      } else {
+        openDropdown();
+      }
+    }
+
+    function openDropdown() {
+      menu.classList.add("show");
+      arrow.classList.add("rotated");
+      searchInput.focus();
+    }
+
+    function closeDropdown() {
+      menu.classList.remove("show");
+      arrow.classList.remove("rotated");
+      searchInput.value = "";
+      // Reset search filter
+      document.querySelectorAll(".dropdown-item").forEach(function (item) {
+        item.style.display = "flex";
+      });
+    }
+
+    function updateSelectedText() {
+      const selected = Array.from(checkboxes).filter((cb) => cb.checked);
+      if (selected.length === 0) {
+        selectedText.textContent = "Choose subscribers...";
+        selectedText.classList.add("selected-count");
+      } else if (selected.length === 1) {
+        // Get the label text for the selected checkbox
+        const label = selected[0].parentElement.querySelector("label");
+        selectedText.textContent = label.textContent;
+        selectedText.classList.remove("selected-count");
+      } else {
+        selectedText.textContent = `${selected.length} subscribers selected`;
+        selectedText.classList.remove("selected-count");
+      }
+    }
+
+    // Initial updates
+    updateSelectedText();
+
+    // Form validation and spinner
+    const forms = document.querySelectorAll(".needs-validation");
+
+    // Use the modern forEach method directly on the NodeList from querySelectorAll
+    forms.forEach(function (form) {
+      form.addEventListener(
+        "submit",
+        function (event) {
+          // Check if at least one subscriber is selected
+          const selectedSubscribers = Array.from(checkboxes).filter(
+            (cb) => cb.checked
+          );
+          if (selectedSubscribers.length === 0) {
+            event.preventDefault();
+            event.stopPropagation();
+            alert("Please select at least one subscriber.");
+            return;
+          }
+
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          } else {
+            // Show spinner, hide icon
+            document.getElementById("bulkSpinner").classList.remove("d-none");
+            document.getElementById("bulkExportIcon").classList.add("d-none");
+            document
+              .getElementById("bulkGenerateBtn")
+              .setAttribute("disabled", "disabled");
+            
+            // Check for download completion via cookie
+            var downloadCheckInterval = setInterval(function() {
+              var cookies = document.cookie.split(';');
+              for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.indexOf('download_token=') === 0) {
+                  // Download is ready, reset button
+                  clearInterval(downloadCheckInterval);
+                  // Delete the cookie
+                  document.cookie = 'download_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                  setTimeout(resetButton, 1000);
+                  break;
+                }
+              }
+            }, 1000); // Check every second
+            
+            // Auto-reset after 35 minutes (safety timeout)
+            setTimeout(function() {
+              clearInterval(downloadCheckInterval);
+              resetButton();
+            }, 6100000); // 35 minutes
+          }
+          form.classList.add("was-validated");
+        },
+        false
+      );
+    });
+
+    // Reset button state on page load and after download
+    function resetButton() {
+      document.getElementById("bulkSpinner").classList.add("d-none");
+      document.getElementById("bulkExportIcon").classList.remove("d-none");
+      document.getElementById("bulkGenerateBtn").removeAttribute("disabled");
+    }
+
+    // Reset button state on page load/navigation
+    window.addEventListener("pageshow", function (event) {
+      resetButton();
+    });
+    
+    // Detect page becoming visible again (user returns after download)
+    document.addEventListener("visibilitychange", function() {
+      if (!document.hidden) {
+        // User returned to tab, reset button
+        setTimeout(resetButton, 1000);
+      }
+    });
+  });
+</script>
+{% endblock %}

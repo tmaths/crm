@@ -1,0 +1,257 @@
+{% extends 'bulkrep/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block extra_css %}
+<style>
+  body {
+    background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  .main-container {
+    padding: 2rem;
+    min-height: calc(100vh - 76px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .form-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 800px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .card-header-custom {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: white;
+  }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0284c7;
+    font-size: 1.2rem;
+  }
+
+  .form-label {
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 0.5rem;
+  }
+
+  .input-group-text {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-right: none;
+    color: #64748b;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+  }
+
+  .form-control {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: none;
+    padding: 0.7rem 1rem;
+    color: #334155;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    transition: all 0.2s;
+  }
+
+  .form-control:focus {
+    background-color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+
+  /* Fix for input group focus border */
+  .input-group:focus-within .input-group-text {
+    border-color: #3b82f6;
+    background-color: white;
+  }
+
+  .input-group:focus-within .form-control {
+    border-left: 1px solid #3b82f6;
+    /* Restore border on focus */
+    margin-left: -1px;
+    /* Overlap to prevent double border width */
+  }
+
+  .form-control:disabled {
+    background-color: #f1f5f9;
+    color: #64748b;
+  }
+
+  .btn-save-custom {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-save-custom:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    color: white;
+  }
+
+  .btn-cancel-custom {
+    background: white;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel-custom:hover {
+    background-color: #f8fafc;
+    color: #334155;
+    border-color: #cbd5e1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div class="form-card">
+    <div class="card-header-custom">
+      <div class="card-icon">
+        <i class="fas fa-user-edit"></i>
+      </div>
+      <h4 class="mb-0 fw-bold" style="color: #1e293b; font-size: 1.25rem;">{{ title }}</h4>
+    </div>
+    <div class="card-body p-4 p-md-5">
+      <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+        <div class="row g-4">
+          <!-- Name Field -->
+          <div class="col-md-6">
+            <label class="form-label">Subscriber Name</label> <!-- Explicit label for cleaner look -->
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-building"></i></span>
+              {% if form.instance.pk %}
+              <input type="text" class="form-control" value="{{ form.instance.name }}" disabled>
+              {% else %}
+              {{ form.name }}
+              {% endif %}
+            </div>
+            {% if form.instance.pk %}
+            <div class="form-text mt-2"><i class="bi bi-info-circle me-1"></i>Subscriber name cannot be changed.</div>
+            {% endif %}
+          </div>
+
+          <!-- Status Field (Conditional) -->
+          {% if subscriber %}
+          <div class="col-md-6">
+            <label class="form-label">Status</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-flag"></i></span>
+              <input type="text" class="form-control" value="{{ subscriber.get_status_display }}" disabled>
+            </div>
+            <div class="form-text mt-2">Automatically updated based on usage.</div>
+          </div>
+          {% endif %}
+
+          <!-- Contact Person -->
+          <div class="col-md-6">
+            {{ form.contact_person.label_tag }}
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-user"></i></span>
+              {{ form.contact_person }}
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="col-md-6">
+            {{ form.email.label_tag }}
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+              {{ form.email }}
+            </div>
+          </div>
+
+          <!-- Phone Number -->
+          <div class="col-md-6">
+            {{ form.phone_number.label_tag }}
+            <div class="input-group">
+              <span class="input-group-text"><i class="fas fa-phone"></i></span>
+              {{ form.phone_number }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Secondary Contact Section -->
+        <div class="mt-4 pt-4" style="border-top: 1px dashed #e2e8f0;">
+          <h6 class="text-muted mb-3"><i class="fas fa-user-friends me-2"></i>Secondary Contact</h6>
+          <div class="row g-4">
+            <!-- Secondary Contact Person -->
+            <div class="col-md-6">
+              {{ form.contact_person_2.label_tag }}
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                {{ form.contact_person_2 }}
+              </div>
+            </div>
+
+            <!-- Secondary Email -->
+            <div class="col-md-6">
+              {{ form.email_2.label_tag }}
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                {{ form.email_2 }}
+              </div>
+            </div>
+
+            <!-- Secondary Phone Number -->
+            <div class="col-md-6">
+              {{ form.phone_number_2.label_tag }}
+              <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                {{ form.phone_number_2 }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-5 d-flex gap-3 justify-content-between">
+          {% if from_page == 'manage' %}
+          <a class="btn btn-cancel-custom" href="{% url 'bulkrep:admin_manage_subscribers' %}">
+            <i class="fas fa-arrow-left me-2"></i>Back to Manage Subscribers
+          </a>
+          {% else %}
+          <a class="btn btn-cancel-custom" href="{% url 'bulkrep:my_subscribers' %}">
+            <i class="fas fa-arrow-left me-2"></i>Back to My Subscribers
+          </a>
+          {% endif %}
+          <div class="d-flex gap-3">
+            <button class="btn btn-save-custom" type="submit">
+              <i class="fas fa-save me-2"></i>Save Changes
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

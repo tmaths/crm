@@ -1,0 +1,555 @@
+{% extends 'bulkrep/base.html' %}
+{% load static %}
+{% block title %}Subscriber Performance{% endblock %}
+{% block extra_css %}
+<style>
+  body {
+    background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  .main-container {
+    padding: 2rem;
+    min-height: calc(100vh - 76px);
+  }
+
+  .page-header {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+  }
+
+  .controls-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .search-box {
+    position: relative;
+  }
+
+  .search-box input {
+    padding: 0.6rem 1rem 0.6rem 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    width: 250px;
+    transition: all 0.2s;
+  }
+
+  .search-box input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+
+  .search-box i {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+  }
+
+  .mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .mode-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .mode-btn:hover {
+    background: #f8fafc;
+  }
+
+  .mode-btn.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-color: #3b82f6;
+  }
+
+  .custom-dates-panel {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .custom-dates-panel.active {
+    display: block;
+  }
+
+  .period-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .period-box {
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .period-box label {
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .period-box input[type="date"] {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  .vs-separator {
+    font-weight: 700;
+    color: #64748b;
+    font-size: 1rem;
+  }
+
+  .compare-btn {
+    padding: 0.6rem 1.5rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .compare-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .data-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  .table-responsive {
+    max-height: 550px;
+    overflow-y: auto;
+  }
+
+  .performance-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .performance-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .performance-table th {
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    color: #475569;
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .performance-table td {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-size: 0.95rem;
+  }
+
+  .performance-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+
+  .subscriber-name {
+    font-weight: 600;
+    color: #1e293b;
+    max-width: 300px;
+    word-wrap: break-word;
+  }
+
+  .performance-value {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .percentage-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .percentage-badge.up {
+    background-color: #dcfce7;
+    color: #16a34a;
+  }
+
+  .percentage-badge.down {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+
+  .percentage-badge.same {
+    background-color: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .meta-info {
+    padding: 1rem 1.5rem;
+    background-color: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+    color: #64748b;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 3rem;
+  }
+
+  .loading-spinner.active {
+    display: block;
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    color: #16a34a;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  .rank-badge.top-3 {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #d97706;
+  }
+
+  .period-info {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    color: #1e40af;
+  }
+
+  .status-badge {
+    padding: 0.3em 0.7em;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .status-badge.active {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  .status-badge.inactive {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div class="page-header">
+    <div class="header-top">
+      <h1 class="page-title"><i class="fas fa-chart-line me-2"></i>{{ title }}</h1>
+      <div class="controls-row">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" id="searchInput" placeholder="Search subscribers..." />
+        </div>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="autoModeBtn" onclick="setMode('auto')">
+            <i class="fas fa-magic me-1"></i> Auto
+          </button>
+          <button class="mode-btn" id="customModeBtn" onclick="setMode('custom')">
+            <i class="fas fa-calendar-alt me-1"></i> Custom
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="custom-dates-panel" id="customDatesPanel">
+      <div class="period-group">
+        <div class="period-box">
+          <label>Period A:</label>
+          <input type="date" id="periodAStart" />
+          <span>to</span>
+          <input type="date" id="periodAEnd" />
+        </div>
+        <span class="vs-separator">VS</span>
+        <div class="period-box">
+          <label>Period B:</label>
+          <input type="date" id="periodBStart" />
+          <span>to</span>
+          <input type="date" id="periodBEnd" />
+        </div>
+        <button class="compare-btn" onclick="loadPerformanceData()">
+          <i class="fas fa-exchange-alt me-1"></i> Compare
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="data-card">
+    <div class="loading-spinner" id="loadingSpinner">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading performance data...</p>
+    </div>
+
+    <div class="table-responsive" id="tableContainer" style="display: none;">
+      <table class="performance-table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">Rank</th>
+            <th>Subscriber Name</th>
+            <th style="text-align: center;">Status</th>
+            <th style="text-align: center;" id="periodAHeader">Period A</th>
+            <th style="text-align: center;" id="periodBHeader">Period B</th>
+            <th style="text-align: center;">% Change</th>
+          </tr>
+        </thead>
+        <tbody id="performanceTableBody">
+        </tbody>
+      </table>
+    </div>
+
+    <div class="no-data" id="noDataMessage" style="display: none;">
+      <i class="fas fa-inbox fa-3x mb-3" style="opacity: 0.3;"></i>
+      <p>No performance data found for the selected criteria.</p>
+    </div>
+
+    <div class="meta-info" id="metaInfo" style="display: none;">
+      <div>
+        <span id="resultCount">0 results</span> |
+        <span class="period-info" id="periodAInfo"></span>
+        <span style="margin: 0 0.25rem;">vs</span>
+        <span class="period-info" id="periodBInfo"></span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentMode = 'auto';
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize custom date inputs with sensible defaults
+    const today = new Date();
+    const firstOfThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastMonthEnd = new Date(firstOfThisMonth - 1);
+    const lastMonthStart = new Date(lastMonthEnd.getFullYear(), lastMonthEnd.getMonth(), 1);
+    const twoMonthsAgoEnd = new Date(lastMonthStart - 1);
+    const twoMonthsAgoStart = new Date(twoMonthsAgoEnd.getFullYear(), twoMonthsAgoEnd.getMonth(), 1);
+
+    // Period A = 2 months ago
+    document.getElementById('periodAStart').value = twoMonthsAgoStart.toISOString().split('T')[0];
+    document.getElementById('periodAEnd').value = twoMonthsAgoEnd.toISOString().split('T')[0];
+
+    // Period B = Last month
+    document.getElementById('periodBStart').value = lastMonthStart.toISOString().split('T')[0];
+    document.getElementById('periodBEnd').value = lastMonthEnd.toISOString().split('T')[0];
+
+    // Load initial data
+    loadPerformanceData();
+
+    // Search events
+    document.getElementById('searchInput').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        loadPerformanceData();
+      }
+    });
+
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function () {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(loadPerformanceData, 500);
+    });
+  });
+
+  function setMode(mode) {
+    currentMode = mode;
+
+    document.getElementById('autoModeBtn').classList.toggle('active', mode === 'auto');
+    document.getElementById('customModeBtn').classList.toggle('active', mode === 'custom');
+    document.getElementById('customDatesPanel').classList.toggle('active', mode === 'custom');
+
+    if (mode === 'auto') {
+      loadPerformanceData();
+    }
+  }
+
+  function loadPerformanceData() {
+    const search = document.getElementById('searchInput').value;
+
+    document.getElementById('loadingSpinner').classList.add('active');
+    document.getElementById('tableContainer').style.display = 'none';
+    document.getElementById('noDataMessage').style.display = 'none';
+    document.getElementById('metaInfo').style.display = 'none';
+
+    const params = new URLSearchParams({
+      mode: currentMode,
+      search: search,
+      limit: 100
+    });
+
+    if (currentMode === 'custom') {
+      params.append('period_a_start', document.getElementById('periodAStart').value);
+      params.append('period_a_end', document.getElementById('periodAEnd').value);
+      params.append('period_b_start', document.getElementById('periodBStart').value);
+      params.append('period_b_end', document.getElementById('periodBEnd').value);
+    }
+
+    fetch(`{% url 'bulkrep:subscriber_performance_api' %}?${params}`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('loadingSpinner').classList.remove('active');
+
+        if (data.success && data.data && data.data.length > 0) {
+          renderTable(data.data);
+          updateMeta(data.meta);
+          document.getElementById('tableContainer').style.display = 'block';
+          document.getElementById('metaInfo').style.display = 'flex';
+        } else {
+          document.getElementById('noDataMessage').style.display = 'block';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading performance data:', error);
+        document.getElementById('loadingSpinner').classList.remove('active');
+        document.getElementById('noDataMessage').innerHTML = `
+        <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color: #ef4444;"></i>
+        <p>Error loading data. Please try again.</p>
+      `;
+        document.getElementById('noDataMessage').style.display = 'block';
+      });
+  }
+
+  function renderTable(data) {
+    const tbody = document.getElementById('performanceTableBody');
+    tbody.innerHTML = '';
+
+    data.forEach((item, index) => {
+      const rank = index + 1;
+      const rankClass = rank <= 3 ? 'top-3' : '';
+
+      const trendArrow = item.trend === 'up' ? '↑' : (item.trend === 'down' ? '↓' : '→');
+      const trendClass = item.trend === 'up' ? 'up' : (item.trend === 'down' ? 'down' : 'same');
+
+      const row = document.createElement('tr');
+      const statusIcon = item.status === 'active' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>';
+      const statusLabel = item.status === 'active' ? 'Active' : 'Inactive';
+      row.innerHTML = `
+      <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+      <td class="subscriber-name">${escapeHtml(item.subscriber_name)}</td>
+      <td style="text-align: center;">
+        <span class="status-badge ${item.status}">
+          ${statusIcon} ${statusLabel}
+        </span>
+      </td>
+      <td style="text-align: center;"><span class="performance-value">${item.period_a_usage.toLocaleString()}</span></td>
+      <td style="text-align: center;"><span class="performance-value">${item.period_b_usage.toLocaleString()}</span></td>
+      <td style="text-align: center;">
+        <span class="percentage-badge ${trendClass}">
+          ${trendArrow} ${Math.abs(item.percentage_change)}%
+        </span>
+      </td>
+    `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function updateMeta(meta) {
+    document.getElementById('resultCount').textContent = `${meta.total_results} results`;
+    document.getElementById('periodAHeader').textContent = meta.period_a_label;
+    document.getElementById('periodBHeader').textContent = meta.period_b_label;
+    document.getElementById('periodAInfo').textContent = meta.period_a_label;
+    document.getElementById('periodBInfo').textContent = meta.period_b_label;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+</script>
+{% endblock %}

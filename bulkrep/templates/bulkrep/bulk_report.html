@@ -218,6 +218,42 @@
           </div>
         </div>
         <div class="mb-4">
+          <label class="form-label fw-semibold mb-2">Output Format</label>
+          <div class="d-flex gap-4">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="output_format"
+                id="format_pdf"
+                value="pdf"
+                checked
+              />
+              <label class="form-check-label" for="format_pdf">
+                <i class="fa-regular fa-file-pdf text-danger me-1"></i>
+                <strong>PDF</strong> (Fast, Styled)
+              </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="output_format"
+                id="format_excel"
+                value="excel"
+              />
+              <label class="form-check-label" for="format_excel">
+                <i class="fa-regular fa-file-excel text-success me-1"></i>
+                <strong>Excel</strong> (Editable)
+              </label>
+            </div>
+          </div>
+          {% comment %} <div class="form-text">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            PDF is 10-20x faster for large datasets and includes full styling
+          </div> {% endcomment %}
+        </div>
+        <div class="mb-4">
           <label class="form-label fw-semibold mb-2">Date Range</label>
           <div class="row g-2">
             <div class="col-6">
@@ -394,7 +430,6 @@
     // Form validation and spinner
     const forms = document.querySelectorAll(".needs-validation");
 
-    // *** THIS IS THE CORRECTED PART ***
     // Use the modern forEach method directly on the NodeList from querySelectorAll
     forms.forEach(function (form) {
       form.addEventListener(
@@ -415,12 +450,35 @@
             event.preventDefault();
             event.stopPropagation();
           } else {
-            // Show spinner, hide icon
-            document.getElementById("bulkSpinner").classList.remove("d-none");
-            document.getElementById("bulkExportIcon").classList.add("d-none");
-            document
-              .getElementById("bulkGenerateBtn")
-              .setAttribute("disabled", "disabled");
+            // Show spinner, hide icon (with null checks)
+            var spinner = document.getElementById("bulkSpinner");
+            var icon = document.getElementById("bulkExportIcon");
+            var btn = document.getElementById("bulkGenerateBtn");
+            if (spinner) spinner.classList.remove("d-none");
+            if (icon) icon.classList.add("d-none");
+            if (btn) btn.setAttribute("disabled", "disabled");
+            
+            // Check for download completion via cookie
+            var downloadCheckInterval = setInterval(function() {
+              var cookies = document.cookie.split(';');
+              for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.indexOf('download_token=') === 0) {
+                  // Download is ready, reset button
+                  clearInterval(downloadCheckInterval);
+                  // Delete the cookie
+                  document.cookie = 'download_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                  setTimeout(resetButton, 1000);
+                  break;
+                }
+              }
+            }, 1000); // Check every second
+            
+            // Auto-reset after 35 minutes (safety timeout)
+            setTimeout(function() {
+              clearInterval(downloadCheckInterval);
+              resetButton();
+            }, 6100000); // 35 minutes
           }
           form.classList.add("was-validated");
         },
@@ -430,14 +488,25 @@
 
     // Reset button state on page load and after download
     function resetButton() {
-      document.getElementById("bulkSpinner").classList.add("d-none");
-      document.getElementById("bulkExportIcon").classList.remove("d-none");
-      document.getElementById("bulkGenerateBtn").removeAttribute("disabled");
+      var spinner = document.getElementById("bulkSpinner");
+      var icon = document.getElementById("bulkExportIcon");
+      var btn = document.getElementById("bulkGenerateBtn");
+      if (spinner) spinner.classList.add("d-none");
+      if (icon) icon.classList.remove("d-none");
+      if (btn) btn.removeAttribute("disabled");
     }
 
-    // Only reset button state on page load/navigation (not beforeunload)
+    // Reset button state on page load/navigation
     window.addEventListener("pageshow", function (event) {
       resetButton();
+    });
+    
+    // Detect page becoming visible again (user returns after download)
+    document.addEventListener("visibilitychange", function() {
+      if (!document.hidden) {
+        // User returned to tab, reset button
+        setTimeout(resetButton, 1000);
+      }
     });
   });
 </script>

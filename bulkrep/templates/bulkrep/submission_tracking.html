@@ -1,0 +1,830 @@
+{% extends 'bulkrep/base.html' %}
+{% load static %}
+{% block title %}Submission Tracking{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"/>
+<style>
+  body {
+    background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  .main-container {
+    padding: 2rem;
+    min-height: calc(100vh - 76px);
+  }
+
+  .page-header {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+  }
+
+  .filters-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .filter-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  /* Multi-select Dropdown */
+  .custom-dropdown {
+    position: relative;
+    min-width: 280px;
+  }
+
+  .custom-dropdown-toggle {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.375rem 0.75rem;
+    background-color: white;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .custom-dropdown-toggle:hover {
+    border-color: #3b82f6;
+  }
+
+  .subscriber-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    margin-top: 4px;
+  }
+
+  .subscriber-dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-search {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+  }
+
+  .dropdown-search input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  .dropdown-item-sub {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 0.9rem;
+  }
+
+  .dropdown-item-sub:hover {
+    background-color: #f1f5f9;
+  }
+
+  .dropdown-item-sub input[type="checkbox"] {
+    margin-right: 8px;
+    accent-color: #3b82f6;
+  }
+
+  .dropdown-arrow {
+    transition: transform 0.2s;
+    font-size: 0.8rem;
+  }
+
+  .dropdown-arrow.rotated {
+    transform: rotate(180deg);
+  }
+
+  .selected-count {
+    color: #64748b;
+  }
+
+  .quick-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  .quick-action-btn {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .quick-action-btn:hover {
+    background: #e2e8f0;
+  }
+
+  /* Month Picker */
+  .month-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    min-width: 150px;
+  }
+
+  .month-input:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  /* Apply Button */
+  .apply-btn {
+    padding: 0.5rem 1.2rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .apply-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  /* Download Button */
+  .download-dropdown {
+    position: relative;
+  }
+
+  .download-btn {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .download-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .download-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    z-index: 100;
+    display: none;
+    overflow: hidden;
+  }
+
+  .download-menu.show {
+    display: block;
+  }
+
+  .download-menu a {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #334155;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .download-menu a:hover {
+    background: #f1f5f9;
+    color: #10b981;
+  }
+
+  /* Summary Cards */
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .summary-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .summary-card .icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-size: 1rem;
+  }
+
+  .summary-card .icon.primary { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); color: #3b82f6; }
+  .summary-card .icon.success { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #16a34a; }
+  .summary-card .icon.warning { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #d97706; }
+  .summary-card .icon.danger { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); color: #dc2626; }
+
+  .summary-card .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .summary-card .label {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  /* Data Table */
+  .data-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  .table-responsive {
+    max-height: 450px;
+    overflow-y: auto;
+  }
+
+  .submission-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .submission-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .submission-table th {
+    background-color: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    color: #475569;
+    font-weight: 600;
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .submission-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-size: 0.9rem;
+  }
+
+  .submission-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+
+  .subscriber-name {
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .date-value {
+    color: #64748b;
+    font-size: 0.85rem;
+  }
+
+  .loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 3rem;
+  }
+
+  .loading-spinner.active {
+    display: block;
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+  }
+
+  .meta-info {
+    padding: 1rem 1.5rem;
+    background-color: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+    color: #64748b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .pagination-btn {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    border-radius: 6px;
+    color: #475569;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    background: #f1f5f9;
+    border-color: #3b82f6;
+    color: #3b82f6;
+  }
+
+  .pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .page-size-select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.85rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div class="page-header">
+    <div class="header-top">
+      <h1 class="page-title"><i class="fas fa-database me-2"></i>Submission Tracking</h1>
+      <a href="{% url 'bulkrep:download_non_submitters' %}" class="download-btn" style="text-decoration: none;">
+        <i class="fas fa-download"></i> Download Non-Submitters
+      </a>
+    </div>
+
+    <!-- Filters Row -->
+    <div class="filters-row">
+      <!-- Month Picker -->
+      <div class="filter-group">
+        <label>Filter by Month</label>
+        <input type="month" class="month-input" id="monthFilter" />
+      </div>
+
+      <!-- Multi-Select Subscribers -->
+      <div class="filter-group">
+        <label>Filter by Subscribers</label>
+        <div class="custom-dropdown" id="subscriberDropdownContainer">
+          <div class="custom-dropdown-toggle" id="subscriberDropdown">
+            <span class="selected-text">All Subscribers</span>
+            <i class="bi bi-chevron-down dropdown-arrow"></i>
+          </div>
+          <div class="subscriber-dropdown-menu" id="subscriberMenu">
+            <div class="dropdown-search">
+              <input type="text" id="subscriberSearchInput" placeholder="Search subscribers..." autocomplete="off"/>
+            </div>
+            <div class="quick-actions">
+              <button type="button" class="quick-action-btn" onclick="selectAllSubscribers()">Select All</button>
+              <button type="button" class="quick-action-btn" onclick="deselectAllSubscribers()">Clear All</button>
+            </div>
+            <div class="dropdown-items" id="subscriberItems">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Apply Button -->
+      <div class="filter-group">
+        <label>&nbsp;</label>
+        <button class="apply-btn" onclick="applyFilters()">
+          <i class="fas fa-filter me-1"></i> Apply Filters
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-row">
+    <div class="summary-card">
+      <div class="icon primary"><i class="fas fa-users"></i></div>
+      <div class="value" id="totalSubscribers">-</div>
+      <div class="label">Total Subscribers</div>
+    </div>
+    <div class="summary-card">
+      <div class="icon" style="background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #4f46e5;"><i class="fas fa-database"></i></div>
+      <div class="value" id="totalInSubmitteddata">-</div>
+      <div class="label">In Submitteddata</div>
+    </div>
+    <div class="summary-card">
+      <div class="icon success"><i class="fas fa-check-circle"></i></div>
+      <div class="value" id="submittedCount">-</div>
+      <div class="label">Submitted (Period)</div>
+    </div>
+    <div class="summary-card">
+      <div class="icon warning"><i class="fas fa-exclamation-circle"></i></div>
+      <div class="value" id="notSubmittedCount">-</div>
+      <div class="label">Not Submitted</div>
+    </div>
+    <div class="summary-card">
+      <div class="icon danger"><i class="fas fa-percentage"></i></div>
+      <div class="value" id="submissionRate">-</div>
+      <div class="label">Rate</div>
+    </div>
+    <div class="summary-card" style="cursor: pointer;" onclick="window.location.href='{% url 'bulkrep:download_missing_from_submitteddata' %}'">
+      <div class="icon" style="background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); color: #be185d;"><i class="fas fa-user-slash"></i></div>
+      <div class="value" id="missingCount">-</div>
+      <div class="label">Missing <i class="fas fa-download" style="font-size: 0.7rem; margin-left: 4px;"></i></div>
+    </div>
+  </div>
+
+  <!-- Subscribers Table -->
+  <div class="data-card">
+    <div class="loading-spinner" id="loadingSpinner">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading submission data...</p>
+    </div>
+
+    <div class="table-responsive" id="tableContainer" style="display: none;">
+      <table class="submission-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Subscriber Name</th>
+            <th>Subscriber ID</th>
+            <th>Last Cleaned</th>
+            <th>Last Loaded</th>
+            <th>Month End</th>
+          </tr>
+        </thead>
+        <tbody id="submissionTableBody">
+        </tbody>
+      </table>
+    </div>
+
+    <div class="no-data" id="noDataMessage" style="display: none;">
+      <i class="fas fa-inbox fa-3x mb-3" style="opacity: 0.3;"></i>
+      <p>No submission data found for the selected filters.</p>
+    </div>
+
+    <div class="meta-info" id="metaInfo" style="display: none;">
+      <div>
+        <span id="resultCount">0 results</span>
+        | Show: 
+        <select class="page-size-select" id="pageSizeSelect" onchange="changePageSize()">
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" id="prevBtn" onclick="prevPage()" disabled>
+          <i class="fas fa-chevron-left"></i> Prev
+        </button>
+        <span id="paginationInfo">Page 1 of 1</span>
+        <button class="pagination-btn" id="nextBtn" onclick="nextPage()" disabled>
+          Next <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentPage = 1;
+  let currentPageSize = 25;
+  let allSubscriberNames = [];
+  let selectedSubscribers = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Set default month to current month
+    const today = new Date();
+    const currentMonth = today.toISOString().slice(0, 7); // YYYY-MM
+    document.getElementById('monthFilter').value = currentMonth;
+
+    // Load subscriber list for dropdown
+    loadSubscriberList();
+
+    // Load initial data
+    loadSubmissionData();
+
+    // Dropdown toggle
+    const dropdown = document.getElementById('subscriberDropdown');
+    const menu = document.getElementById('subscriberMenu');
+    
+    dropdown.addEventListener('click', function(e) {
+      e.stopPropagation();
+      menu.classList.toggle('show');
+      dropdown.querySelector('.dropdown-arrow').classList.toggle('rotated');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!document.getElementById('subscriberDropdownContainer').contains(e.target)) {
+        menu.classList.remove('show');
+        dropdown.querySelector('.dropdown-arrow').classList.remove('rotated');
+      }
+      if (!e.target.closest('.download-dropdown')) {
+        document.getElementById('downloadMenu').classList.remove('show');
+      }
+    });
+
+    // Subscriber search filter
+    document.getElementById('subscriberSearchInput').addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      document.querySelectorAll('.dropdown-item-sub').forEach(function(item) {
+        const text = item.querySelector('label').textContent.toLowerCase();
+        item.style.display = text.includes(searchTerm) ? 'flex' : 'none';
+      });
+    });
+
+    // Prevent menu close when clicking inside
+    menu.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  });
+
+  function loadSubscriberList() {
+    // Get unique subscriber names from the submission data
+    fetch(`{% url 'bulkrep:submission_tracking_api' %}?page_size=1000`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.submissions) {
+          allSubscriberNames = [...new Set(data.submissions.map(s => s.subscriber_name))].sort();
+          renderSubscriberDropdown();
+        }
+      });
+  }
+
+  function renderSubscriberDropdown() {
+    const container = document.getElementById('subscriberItems');
+    container.innerHTML = '';
+    
+    allSubscriberNames.forEach((name, index) => {
+      const div = document.createElement('div');
+      div.className = 'dropdown-item-sub';
+      div.innerHTML = `
+        <input type="checkbox" id="sub_${index}" value="${name}" onchange="updateSelectedSubscribers()"/>
+        <label for="sub_${index}">${name}</label>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function selectAllSubscribers() {
+    document.querySelectorAll('.dropdown-item-sub input[type="checkbox"]').forEach(cb => {
+      if (cb.closest('.dropdown-item-sub').style.display !== 'none') {
+        cb.checked = true;
+      }
+    });
+    updateSelectedSubscribers();
+  }
+
+  function deselectAllSubscribers() {
+    document.querySelectorAll('.dropdown-item-sub input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+    });
+    updateSelectedSubscribers();
+  }
+
+  function updateSelectedSubscribers() {
+    const checkboxes = document.querySelectorAll('.dropdown-item-sub input[type="checkbox"]:checked');
+    selectedSubscribers = Array.from(checkboxes).map(cb => cb.value);
+    
+    const textSpan = document.querySelector('.selected-text');
+    if (selectedSubscribers.length === 0) {
+      textSpan.textContent = 'All Subscribers';
+    } else if (selectedSubscribers.length === 1) {
+      textSpan.textContent = selectedSubscribers[0];
+    } else {
+      textSpan.textContent = `${selectedSubscribers.length} selected`;
+    }
+  }
+
+  function toggleDownloadMenu() {
+    document.getElementById('downloadMenu').classList.toggle('show');
+  }
+
+  function applyFilters() {
+    currentPage = 1;
+    loadSubmissionData();
+  }
+
+  function prevPage() {
+    if (currentPage > 1) {
+      currentPage--;
+      loadSubmissionData();
+    }
+  }
+
+  function nextPage() {
+    currentPage++;
+    loadSubmissionData();
+  }
+
+  function changePageSize() {
+    currentPageSize = parseInt(document.getElementById('pageSizeSelect').value);
+    currentPage = 1;
+    loadSubmissionData();
+  }
+
+  function loadSubmissionData() {
+    document.getElementById('loadingSpinner').classList.add('active');
+    document.getElementById('tableContainer').style.display = 'none';
+    document.getElementById('noDataMessage').style.display = 'none';
+    document.getElementById('metaInfo').style.display = 'none';
+
+    const monthFilter = document.getElementById('monthFilter').value;
+    const params = new URLSearchParams({ 
+      page: currentPage,
+      page_size: currentPageSize
+    });
+
+    if (monthFilter) {
+      params.append('month', monthFilter);
+    }
+
+    if (selectedSubscribers.length > 0) {
+      params.append('subscribers', selectedSubscribers.join(','));
+    }
+
+    fetch(`{% url 'bulkrep:submission_tracking_api' %}?${params}`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('loadingSpinner').classList.remove('active');
+
+        if (data.success) {
+          updateSummaryCards(data.summary);
+
+          if (data.submissions && data.submissions.length > 0) {
+            renderTable(data.submissions, data.pagination);
+            updatePagination(data.pagination);
+            document.getElementById('tableContainer').style.display = 'block';
+            document.getElementById('metaInfo').style.display = 'flex';
+          } else {
+            document.getElementById('noDataMessage').style.display = 'block';
+          }
+        } else {
+          document.getElementById('noDataMessage').style.display = 'block';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading submission data:', error);
+        document.getElementById('loadingSpinner').classList.remove('active');
+        document.getElementById('noDataMessage').innerHTML = `
+          <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color: #ef4444;"></i>
+          <p>Error loading data. Please try again.</p>
+        `;
+        document.getElementById('noDataMessage').style.display = 'block';
+      });
+  }
+
+  function updateSummaryCards(summary) {
+    document.getElementById('totalSubscribers').textContent = summary.total_subscribers.toLocaleString();
+    document.getElementById('totalInSubmitteddata').textContent = summary.total_in_submitteddata.toLocaleString();
+    document.getElementById('submittedCount').textContent = summary.submitted_count.toLocaleString();
+    document.getElementById('notSubmittedCount').textContent = summary.not_submitted_count.toLocaleString();
+    document.getElementById('submissionRate').textContent = summary.submission_rate + '%';
+    document.getElementById('missingCount').textContent = summary.missing_count.toLocaleString();
+  }
+
+  function updatePagination(pagination) {
+    document.getElementById('resultCount').textContent = `${pagination.total_count.toLocaleString()} total`;
+    document.getElementById('paginationInfo').textContent = `Page ${pagination.page} of ${pagination.total_pages}`;
+    document.getElementById('prevBtn').disabled = !pagination.has_prev;
+    document.getElementById('nextBtn').disabled = !pagination.has_next;
+  }
+
+  function renderTable(submissions, pagination) {
+    const tbody = document.getElementById('submissionTableBody');
+    tbody.innerHTML = '';
+    const startIndex = (pagination.page - 1) * pagination.page_size;
+
+    submissions.forEach((item, index) => {
+      const row = document.createElement('tr');
+      const isNotSubmitted = item.status === 'not_submitted';
+      
+      if (isNotSubmitted) {
+        row.style.backgroundColor = '#fef3c7'; // Light yellow background
+      }
+      
+      row.innerHTML = `
+        <td>${startIndex + index + 1}</td>
+        <td class="subscriber-name">${escapeHtml(item.subscriber_name)}</td>
+        <td>${escapeHtml(item.subscriber_id) || '-'}</td>
+        <td class="date-value">${isNotSubmitted ? '<span style="color: #d97706;">Not yet</span>' : formatDate(item.cleaned_date)}</td>
+        <td class="date-value">${isNotSubmitted ? '<span style="color: #d97706;">Not yet</span>' : formatDate(item.loaded_date)}</td>
+        <td class="date-value">${isNotSubmitted ? '<span style="color: #d97706;">-</span>' : formatDate(item.month_end_date)}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    const cleanDate = String(dateStr).trim().substring(0, 10);
+    const parts = cleanDate.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        const date = new Date(year, month, day);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+    }
+    return cleanDate;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+</script>
+{% endblock %}

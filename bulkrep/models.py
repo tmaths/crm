@@ -2,12 +2,86 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from decimal import Decimal
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
+
+class Subscriber(models.Model):
+    name = models.CharField(max_length=255, unique=True, help_text="The name of the subscriber.")
+    # Primary contact information
+    contact_person = models.CharField(max_length=255, blank=True, help_text="The primary contact person for the subscriber.")
+    email = models.EmailField(blank=True, help_text="The primary contact email for the subscriber.")
+    phone_number = models.CharField(max_length=20, blank=True, help_text="The primary contact phone number for the subscriber.")
+    # Secondary contact information (backup)
+    contact_person_2 = models.CharField(max_length=255, blank=True, help_text="The secondary contact person for the subscriber.")
+    email_2 = models.EmailField(blank=True, help_text="The secondary contact email for the subscriber.")
+    phone_number_2 = models.CharField(max_length=20, blank=True, help_text="The secondary contact phone number for the subscriber.")
+    managed_by = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='managed_subscribers',
+        help_text="The manager responsible for this subscriber."
+    )
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('pending', 'Pending'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', help_text="Subscriber status")
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Subscriber"
+        verbose_name_plural = "Subscribers"
+
+    def __str__(self):
+        return self.name
+
+
+# Signal to clear subscriber contact info when their manager is deleted
+@receiver(pre_delete, sender=get_user_model())
+def clear_subscriber_contact_on_manager_delete(sender, instance, **kwargs):
+    """
+    When a user (manager) is deleted, clear the contact info for all subscribers they manage.
+    The managed_by field will be set to NULL automatically by Django's SET_NULL.
+    """
+    Subscriber.objects.filter(managed_by=instance).update(
+        contact_person='',
+        email='',
+        phone_number='',
+        contact_person_2='',
+        email_2='',
+        phone_number_2=''
+    )
+
+
+class KeySubscriber(models.Model):
+    """Model to store key/priority subscribers that admins can manage via the admin panel."""
+    subscriber_name = models.CharField(max_length=255, unique=True, help_text="Name of the key subscriber.")
+    added_at = models.DateTimeField(auto_now_add=True, help_text="When this subscriber was added as a key subscriber.")
+    added_by = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='added_key_subscribers',
+        help_text="Admin who added this key subscriber."
+    )
+
+    class Meta:
+        ordering = ['subscriber_name']
+        verbose_name = "Key Subscriber"
+        verbose_name_plural = "Key Subscribers"
+
+    def __str__(self):
+        return self.subscriber_name
 
 # Create your models here.
 
 class SubscriberProductRate(models.Model):
     id = models.AutoField(primary_key=True)
-    subscriber_name = models.CharField(max_length=255, db_column='subscriberName')
+    subscriber_name = models.CharField(max_length=255, db_column='SubscriberName')
     product_name = models.CharField(max_length=255, db_column='ProductName')
     rate = models.DecimalField(max_digits=10, decimal_places=2, db_column='rate')
 
@@ -15,6 +89,7 @@ class SubscriberProductRate(models.Model):
         managed = False
         db_table = 'SubscriberProductRate'
         unique_together = (('subscriber_name', 'product_name'),)
+
 
     def __str__(self):
         return f"{self.subscriber_name} - {self.product_name} - {self.rate}"
@@ -35,6 +110,15 @@ class Usagereport(models.Model):
         managed = False  # Tell Django not to manage this table
         db_table = 'usagereport' # Specify the existing table name
         unique_together = (('SubscriberName', 'ProductName', 'SearchIdentity'),)
+
+        indexes = [
+            models.Index(fields=['DetailsViewedDate']),
+            models.Index(fields=['SubscriberName']),
+            # Composite indexes for optimized queries
+            models.Index(fields=['SubscriberName', 'DetailsViewedDate'], name='idx_sub_date'),
+            models.Index(fields=['ProductName', 'DetailsViewedDate'], name='idx_prod_date'),
+            models.Index(fields=['SubscriberName', 'ProductName'], name='idx_sub_prod'),
+        ]
     
     def __str__(self):
         return f"{self.SubscriberName} - {self.ProductName} - {self.SearchIdentity}"
@@ -187,7 +271,7 @@ ENQUIRY_RATES = {
     'consumer_basic_trace': Decimal('170.00'),
     'consumer_basic_credit': Decimal('170.00'),
     'consumer_detailed_credit': Decimal('240.00'),
-    'xscore_consumer_credit': Decimal('500.00'),
+    'xscore_consumer_detailed_credit': Decimal('500.00'),
     'commercial_basic_trace': Decimal('275.00'),
     'commercial_detailed_credit': Decimal('500.00'),
     'enquiry_report': Decimal('50.00'),
@@ -195,4 +279,34 @@ ENQUIRY_RATES = {
     'commercial_dud_cheque': Decimal('0.00'),
     'director_basic_report': Decimal('0.00'),
     'director_detailed_report': Decimal('0.00'),
+    'iscore': Decimal('1200.00'),
+    'xscore_commercial_detailed_credit': Decimal('1500.00'),
+    'kyc_report': Decimal('1800.00'),
+    'xscore_consumer_prime': Decimal('1400.00'),
 }
+
+
+class Submitteddata(models.Model):
+    """
+    Tracks subscriber data submissions - unmanaged external table.
+    Used for submission tracking analytics and identifying non-submitters.
+    """
+    id = models.AutoField(primary_key=True, db_column='ID')
+    subscriber_id = models.CharField(max_length=255, db_column='SubscriberId')
+    subscriber_name = models.CharField(max_length=255, db_column='SubscriberName')
+    cleaned_date = models.DateField(db_column='CleannedDate')
+    loaded_date = models.DateField(db_column='LoadedDate')
+    month_end_date = models.DateField(db_column='MonthEndDate', null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = 'Submitteddata'
+        indexes = [
+            models.Index(fields=['subscriber_name'], name='idx_submitted_sub_name'),
+            models.Index(fields=['loaded_date'], name='idx_submitted_loaded'),
+            models.Index(fields=['cleaned_date'], name='idx_submitted_cleaned'),
+        ]
+
+    def __str__(self):
+        return f"{self.subscriber_name} - {self.loaded_date}"
+

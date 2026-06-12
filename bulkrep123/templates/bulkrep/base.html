@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>{% block title %}Report Generator{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Custom CSS -->
+    <link href="{% static 'bulkrep/css/style.css' %}" rel="stylesheet" />
+    {% block extra_css %}{% endblock %}
+    <style>
+      .navbar-custom {
+        background: linear-gradient(135deg, #d6efff 0%, #ffe7c2 100%);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+      }
+      .navbar-custom .navbar-brand,
+      .navbar-custom .nav-link {
+        color: #333 !important;
+        font-weight: 600;
+      }
+      .navbar-custom .nav-link:hover {
+        color: #667eea !important;
+        transition: color 0.3s ease;
+      }
+      .navbar-logo {
+        height: 45px;
+        width: auto;
+        object-fit: contain;
+        filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1));
+      }
+      @media (max-width: 768px) {
+        .navbar-logo {
+          height: 35px;
+        }
+      }
+      .navbar-brand {
+        margin-right: 2rem;
+      }
+      .footer-custom {
+        background: #181c23;
+        color: #fff;
+      }
+      .footer-custom a {
+        color: #fff;
+        opacity: 0.8;
+        margin-left: 1.5rem;
+        text-decoration: none;
+      }
+      .footer-custom a:hover {
+        opacity: 1;
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <!-- Impersonation Banner -->
+    {% include 'accounts/impersonation_banner.html' %}
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-custom py-3">
+      <div class="container-fluid px-4">
+        <!-- Logo at the start -->
+        <a class="navbar-brand me-4" href="{% url 'bulkrep:home' %}">
+          <img
+            src="{% static 'Images/FirstCentralAPPROVEDLogo.png' %}"
+            alt="First Central Logo"
+            class="navbar-logo"
+          />
+        </a>
+
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <!-- Navigation items - centered with even spacing -->
+          <ul class="navbar-nav mx-auto d-flex justify-content-center gap-4">
+            <li class="nav-item">
+              <a class="nav-link px-3" href="{% url 'bulkrep:single_report' %}"
+                >Single Report</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3" href="{% url 'bulkrep:bulk_report' %}"
+                >Bulk Report</a
+              >
+            </li>
+            {% if user.is_authenticated and not user.is_superuser %}
+            <li class="nav-item">
+              <a class="nav-link px-3" href="{% url 'bulkrep:my_subscribers' %}"><i class="fas fa-users me-1"></i>My Subscribers</a>
+            </li>
+            {% endif %}
+            {% if user.is_authenticated %}
+            <li class="nav-item">
+              <a class="nav-link px-3" href="{% url 'bulkrep:dashboard' %}"
+                ><i class="fas fa-chart-line me-1"></i>Dashboard</a
+              >
+            </li>
+            {% if user.is_superuser %}
+              <li class="nav-item">
+                <a class="nav-link px-3" href="/admin/">
+                  <i class="fas fa-cog me-1"></i>Admin
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link px-3" href="{% url 'bulkrep:admin_reassign_subscribers' %}">
+                  <i class="fas fa-user-cog me-1"></i>Reassign Subscribers
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link px-3" href="{% url 'bulkrep:subscriber_performance' %}">
+                  <i class="fas fa-chart-bar me-1"></i>Performance
+                </a>
+              </li>
+            {% endif %}
+            {% endif %}
+          </ul>
+
+          <!-- User info and logout - right aligned with spacing -->
+          <ul class="navbar-nav ms-auto d-flex align-items-center gap-3">
+            {% if user.is_authenticated %}
+            <li class="nav-item">
+              <span class="nav-link px-3">Hello, {{ user.username }}</span>
+            </li>
+            <li class="nav-item">
+              <form
+                method="post"
+                action="{% url 'accounts:logout' %}"
+                style="display: inline"
+              >
+                {% csrf_token %}
+                <button
+                  type="submit"
+                  class="nav-link btn btn-link px-3"
+                  style="background: none; border: none"
+                  title="Logout"
+                >
+                  <i class="fas fa-sign-out-alt"></i>
+                </button>
+              </form>
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link px-3" href="{% url 'accounts:login' %}"
+                >Login</a
+              >
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container py-4">
+      {% if messages %} {% for message in messages %}
+      <div
+        class="alert alert-{{ message.tags }} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ message }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+          aria-label="Close"
+        ></button>
+      </div>
+      {% endfor %} {% endif %} {% block content %} {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer footer-custom mt-auto py-3">
+      <div
+        class="container d-flex justify-content-between align-items-center flex-wrap"
+      >
+        <span>&copy; {% now "Y" %} Report Generator. All rights reserved.</span>
+        <span>
+          <a href="#">Terms</a>
+          <a href="#">Privacy</a>
+          <a href="#">Contact</a>
+        </span>
+      </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{% static 'bulkrep/js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,123 @@
+/* Custom styling for SubscriberProductRate admin form */
+
+.field-rate_choice {
+  margin-bottom: 15px;
+}
+
+.field-rate {
+  margin-bottom: 15px;
+}
+
+.field-rate input[type="number"] {
+  width: 200px;
+}
+
+.field-subscriber_name select,
+.field-product_name select,
+.field-rate_choice select {
+  min-width: 400px;
+  max-width: 600px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.5;
+  padding: 8px 12px;
+  height: auto;
+  min-height: 36px;
+}
+
+/* Help text styling */
+.help {
+  font-size: 11px;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* Form row spacing */
+.form-row {
+  margin-bottom: 10px;
+}
+
+/* Custom rate field styling when hidden */
+.field-rate[style*="display: none"] {
+  display: none !important;
+}
+
+/* .field-rate {
+    /* Rate field should be visible by default, JavaScript will control visibility */
+/* } */
+
+.field-rate.hidden {
+  display: none !important;
+  visibility: hidden;
+}
+
+.field-rate.show {
+  display: block !important;
+  visibility: visible;
+}
+
+/* Highlight required fields */
+.required label:after {
+  content: " *";
+  color: #e32;
+  font-weight: bold;
+}
+
+/* Dropdown styling improvements */
+select.form-control {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+select.form-control:focus {
+  border-color: #417690;
+  outline: none;
+  box-shadow: 0 0 5px rgba(65, 118, 144, 0.3);
+}
+
+/* Improve option visibility */
+select.form-control option {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #333;
+  background-color: #fff;
+  font-weight: normal;
+}
+
+select.form-control option:hover {
+  background-color: #f5f5f5;
+  color: #000;
+}
+
+select.form-control option:selected {
+  background-color: #417690;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Ensure text is always visible */
+.field-subscriber_name select option,
+.field-product_name select option,
+.field-rate_choice select option {
+  color: #333 !important;
+  background-color: #fff !important;
+  padding: 6px 8px;
+  min-height: 24px;
+  display: block;
+}
+
+/* Selected option styling */
+.field-subscriber_name select option:checked,
+.field-product_name select option:checked,
+.field-rate_choice select option:checked {
+  background-color: #417690 !important;
+  color: #fff !important;
+  font-weight: 500;
+}
